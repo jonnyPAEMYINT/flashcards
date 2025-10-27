@@ -87,4 +87,36 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   loadCards(); // default load
+
+  function preventDoubleClick(button, callback, delay = 500) {
+    let clickable = true;
+    button.addEventListener('click', () => {
+      if (!clickable) return;
+      clickable = false;
+      callback();
+      setTimeout(() => { clickable = true; }, delay);
+    });
+  }
+
+  // Example usage
+  preventDoubleClick(nextBtn, () => {
+    currentIndex = (currentIndex + 1) % cards.length;
+    flipped = false;
+    showCard();
+  });
+
+  preventDoubleClick(prevBtn, () => {
+    currentIndex = (currentIndex - 1 + cards.length) % cards.length;
+    flipped = false;
+    showCard();
+  });
+
+  preventDoubleClick(flipBtn, () => {
+    flipped = !flipped;
+    showCard();
+  });
+
+  preventDoubleClick(shuffleBtn, resetDeckShuffled);
+  preventDoubleClick(resetBtn, resetDeckOriginal);
+  
 });
