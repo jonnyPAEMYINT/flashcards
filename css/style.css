@@ -118,7 +118,7 @@ footer {
 /* Mobile font adjustments */
 @media (max-width: 480px) {
   html, body {
-    font-size: 1rem; /* slightly smaller base font for mobile */
+    font-size: 1.2rem; /* slightly smaller base font for mobile */
   }
 
   h1 {
@@ -126,7 +126,6 @@ footer {
   }
 
   select, button {
-    font-size: 1rem; /* smaller text in dropdown and buttons */
     padding: 0.4rem 1rem; /* slightly smaller padding */
   }
 
