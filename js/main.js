@@ -111,11 +111,6 @@ document.addEventListener('DOMContentLoaded', () => {
     showCard();
   });
 
-  preventDoubleClick(flipBtn, () => {
-    flipped = !flipped;
-    showCard();
-  });
-
   preventDoubleClick(shuffleBtn, resetDeckShuffled);
   preventDoubleClick(resetBtn, resetDeckOriginal);
   
