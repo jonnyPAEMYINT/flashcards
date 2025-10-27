@@ -1,0 +1,116 @@
+html, body {
+  font-family: Arial, sans-serif;
+  font-size: 1rem; /* base font size */
+}
+
+body {
+  display: flex;
+  flex-direction: column; /* allow footer at bottom */
+  min-height: 100vh;
+  background: linear-gradient(135deg, #74ebd5 0%, #ACB6E5 100%);
+}
+
+.wrapper {
+  flex: 1; /* fill vertical space */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center; /* vertical centering */
+  width: 100%;
+  max-width: 450px;
+  text-align: center;
+  padding: 10px;
+}
+
+/* Heading */
+h1 {
+  font-size: clamp(1.2rem, 4vw, 2.5rem);
+  color: #fff;
+  text-align: center;
+  padding: 15px 0;
+  color: #fff;
+  background: rgba(0,0,0,0.2);
+  border-top: 1px solid rgba(255,255,255,0.3);
+  border-radius: 8px;
+}
+
+/* Dropdown */
+select {
+  width: 80%;
+  max-width: 400px;
+  padding: 0.6rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.3);
+  background: rgba(255, 255, 255, 0.25);
+  color: #000;
+  font-size: 1rem;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+  margin-bottom: 2.5rem;
+}
+
+select:hover {
+  background: rgba(255,255,255,0.35);
+  transform: scale(1.02);
+}
+
+/* Flashcard */
+.card {
+  width: 90%;
+  max-width: 400px;
+  height: 180px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1rem;
+  cursor: pointer;
+  transition: transform 0.3s, background 0.3s;
+  color: #000;
+  margin-bottom: 3rem;
+}
+
+/* Controls (buttons) */
+.controls {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 3rem; /* space below buttons before footer */
+}
+
+button {
+  padding: 0.5rem 2rem;
+  border: none;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.25);
+  color: #000;
+  cursor: pointer;
+  font-size: 1rem;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: transform 0.2s, background 0.2s;
+}
+
+button:hover {
+  transform: scale(1.05);
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* Footer */
+footer {
+  text-align: center;
+  padding: 15px 0;
+  font-size: 0.9rem;
+  color: #fff;
+  background: rgba(0,0,0,0.2);
+  border-top: 1px solid rgba(255,255,255,0.3);
+  border-radius: 8px;
+}
