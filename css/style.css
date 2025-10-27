@@ -114,3 +114,25 @@ footer {
   border-top: 1px solid rgba(255,255,255,0.3);
   border-radius: 8px;
 }
+
+/* Mobile font adjustments */
+@media (max-width: 480px) {
+  html, body {
+    font-size: 1rem; /* slightly smaller base font for mobile */
+  }
+
+  h1 {
+    font-size: 1.2rem; /* adjust heading for mobile */
+  }
+
+  select, button {
+    font-size: 0.9rem; /* smaller text in dropdown and buttons */
+    padding: 0.4rem 1rem; /* slightly smaller padding */
+  }
+
+  .card {
+    font-size: 1.2rem; /* slightly smaller base font for mobile */
+    height: 150px; /* smaller card height */
+    padding: 0.8rem;
+  }
+}
