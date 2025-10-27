@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentIndex = 0;
   let flipped = false;
 
-  async function loadCards(file = 'flashcards/data/flashcards_phrases.json') {
+  async function loadCards(file = 'https://jonnypaemyint.github.io/flashcards/data/flashcards_phrases.json') {
     flashcard.textContent = 'Loading...';
     try {
       const res = await fetch(file);
