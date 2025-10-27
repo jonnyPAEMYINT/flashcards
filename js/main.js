@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function loadCards(file = 'flashcards/data/flashcards_phrases.json') {
     flashcard.textContent = 'Loading...';
     try {
+      console.log(file);
       const res = await fetch(file);
       cards = await res.json();
       resetDeckOriginal();
