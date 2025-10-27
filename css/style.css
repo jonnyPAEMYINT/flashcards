@@ -58,7 +58,6 @@ select:hover {
 
 /* Flashcard */
 .card {
-  width: 90%;
   max-width: 400px;
   height: 180px;
   background: rgba(255, 255, 255, 0.25);
