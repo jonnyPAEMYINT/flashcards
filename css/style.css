@@ -126,7 +126,7 @@ footer {
   }
 
   select, button {
-    font-size: 0.9rem; /* smaller text in dropdown and buttons */
+    font-size: 1rem; /* smaller text in dropdown and buttons */
     padding: 0.4rem 1rem; /* slightly smaller padding */
   }
 
