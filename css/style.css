@@ -1,6 +1,7 @@
 html, body {
   font-family: Arial, sans-serif;
   font-size: 1rem; /* base font size */
+  touch-action: manipulation; /* disables double-tap zoom and pinch
 }
 
 body {
