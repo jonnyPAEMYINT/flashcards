@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let indexOrder = [];
   let currentIndex = 0;
   let flipped = false;
+  let finished = false;
 
   //const basePath = ""
   const basePath = "https://jonnypaemyint.github.io/flashcards/"
@@ -135,25 +136,31 @@ document.addEventListener('DOMContentLoaded', () => {
   //nextBtn.onclick = () => { currentIndex = (currentIndex + 1) % cards.length; flipped = false; showCard(); };
   //prevBtn.onclick = () => { currentIndex = (currentIndex - 1 + cards.length) % cards.length; flipped = false; showCard(); };
   
-  nextBtn.onclick = () => {
+  preventDoubleClick(nextBtn, () => {
     if (currentIndex < cards.length - 1) {
-      currentIndex++;
+      currentIndex = (currentIndex + 1) % cards.length;
       flipped = false;
-      showCard();
+      showCard();      
     } else {
-      flashcard.textContent = "Well done! You’ve reached the end of the flashcards.";
+      flipped = false;
+      finished = true;
+      showCard();
+      flashcard.textContent = "Well done! You’ve reached the end of the flashcards.";      
     }
-  };
+  });
 
-  prevBtn.onclick = () => {
+  preventDoubleClick(prevBtn, () => {
     if (currentIndex > 0) {
-      currentIndex--;
+      if(finished == true){
+          currentIndex = currentIndex
+          finished = false;
+      }else{
+        currentIndex = (currentIndex - 1 + cards.length) % cards.length;
+      }
       flipped = false;
-      showCard();
-    } else {
-      flashcard.textContent = "You are at the first flashcard.";
-    }
-  };
+      showCard();           
+    } 
+  });
 
   flipBtn.onclick = () => { flipped = !flipped; showCard(); };
   
@@ -173,4 +180,5 @@ document.addEventListener('DOMContentLoaded', () => {
   [nextBtn, prevBtn, shuffleBtn, resetBtn].forEach(btn => {
     preventDoubleClick(btn, () => btn.click());
   });
+
 });
