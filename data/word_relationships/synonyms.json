@@ -46,8 +46,8 @@
   {"front": "fern", "back": "weit (far)"},
   {"front": "dick", "back": "fett (thick/fat)"},
   {"front": "dünn", "back": "schlank (thin)"},
-  {"front": "freundlich", "back": "liebenswürdig (friendly/kind)"},
   {"front": "gemein", "back": "böse (mean)"},
+  {"front": "freundlich", "back": "liebenswürdig (friendly/kind)"},
   {"front": "schön", "back": "attraktiv (attractive)"},
   {"front": "hässlich", "back": "unattraktiv (unattractive)"}
 ]
