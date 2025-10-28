@@ -8,24 +8,27 @@
   <script type="text/javascript" src="js/main.js"></script>
 </head>
 <body>
-  <div class="main-content">
+
+    <div class="main-content">
     <div class="centered">
       <h1>Es macht Spaß, Deutsch zu lernen.</h1>
-      <select id="category">
-        <option value="data/flashcards_phrases.json">Phrases (50)</option>
-         <option value="data/flashcards_opposite_words.json">Opposite Words (50)</option>
-        <option value="data/flashcards_animal.json">Animals (50)</option>
-        <option value="data/flashcards_places.json">Places (50)</option>
-        <option value="data/flashcards_family.json">Family (50)</option>
-        <option value="data/flashcards_fruits_food.json">Fruits & Food (50)</option>
-        <option value="data/flashcards_feeling_adj.json">Feelings (30)</option>
-        <option value="data/flashcards_preposition.json">Prepositions (30)</option>
-        <option value="data/flashcards_common_verb.json">Common Verbs (30)</option>
-        <option value="data/flashcards_refexive_verb.json">Reflexive Verbs (30)</option>
-        <option value="data/flashcards_dative_verb.json">Dative Verbs (30)</option>
-        <option value="data/flashcards_daily_vocab.json">B2 Level Verbs (30)</option>              
+
+      <!-- First dropdown: main category -->
+      <select id="main-category">
+        <option value="phrases">Phrases</option>
+        <option value="vocabulary">Vocabulary</option>
+        <option value="verbs">Verbs</option>
+        <option value="word_relationships">Word Relationships</option>
+        <option value="situations">Situations</option>
       </select>
+
+      <!-- Second dropdown: subcategory (populated dynamically) -->
+      <select id="sub-category"></select>
+
+      <!-- Flashcard container (same as before) -->
       <div class="card" id="flashcard">Loading...</div>
+
+      <!-- Controls -->
       <div class="controls">
         <button id="prev">Previous</button>
         <button id="flip">Flip</button>
@@ -33,8 +36,9 @@
         <button id="shuffle">Shuffle</button>
         <button id="reset">Reset</button>
       </div>
-    </div> 
+    </div>
   </div>
+
   <footer>
     Developed with ❤️ by JPM &copy; 2025
   </footer>
