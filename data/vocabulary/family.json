@@ -34,7 +34,7 @@
   {"front": "die Großfamilie", "back": "extended family"},
   {"front": "die Kleinfamilie", "back": "nuclear family"},
   {"front": "die Alleinerziehende", "back": "single parent (female)"},
-  {"front": "der Alleinerziehende", "back": "single parent (male)"},
+  {"front": "der Alleinerziehender", "back": "single parent (male)"},
   {"front": "das Familienmitglied", "back": "family member"},
   {"front": "die Schwiegertochter", "back": "daughter-in-law"},
   {"front": "der Schwiegersohn", "back": "son-in-law"},
