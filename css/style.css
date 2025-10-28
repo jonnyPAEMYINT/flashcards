@@ -2,6 +2,9 @@ html, body {
   font-family: Arial, sans-serif;
   font-size: 1rem; /* base font size */
   touch-action: manipulation; /* disables double-tap zoom and pinch
+  user-select: none;        /* prevent text selection */
+  -webkit-user-select: none;
+  -ms-user-select: none;
 }
 
 body {
@@ -133,7 +136,7 @@ button {
   font-size: 1rem;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  transition: transform 0.2s, background 0.2s;
+  transition: transform 0.2s, background 0.2s;  
 }
 
 button.active-reverse {
