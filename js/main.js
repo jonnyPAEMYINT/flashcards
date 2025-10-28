@@ -46,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
       { name: "A1-A2 common verbs", file: basePath + "data/verbs/a12_common_verbs.json" },
       { name: "B1-B2 common verbs", file: basePath + "data/verbs/b12_common_verbs.json" },
       { name: "A1-B2 Präteritum – Perfekt (auxiliary verb)", file: basePath + "data/verbs/a1b2_past_perfekt_verbs.json" },
+      { name: "Irregular verbs", file: basePath + "data/verbs/irregularverbs.json" },
       { name: "Dative verbs", file: basePath + "data/verbs/dative_verbs.json" },   
       { name: "Reflexive Verbs", file: basePath + "data/verbs/reflexive_verbs.json" },
       { name: "Modal Verbs", file: basePath + "data/verbs/modal_verbs.json" },
