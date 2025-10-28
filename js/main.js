@@ -7,15 +7,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const resetBtn = document.getElementById('reset');     // Reset button
   const mainCategory = document.getElementById('main-category'); // new main category dropdown
   const subCategory = document.getElementById('sub-category');   // new subcategory dropdown
+  const reverseBtn = document.getElementById('reverse');
+
+  //const basePath = ""
+  const basePath = "https://jonnypaemyint.github.io/flashcards/"
 
   let cards = [];
   let indexOrder = [];
   let currentIndex = 0;
   let flipped = false;
   let finished = false;
-
-  //const basePath = ""
-  const basePath = "https://jonnypaemyint.github.io/flashcards/"
+  let reverseMode = false; // new variable to track reverse mode
 
   // Define datasets
   const datasets = {
@@ -51,7 +53,8 @@ document.addEventListener('DOMContentLoaded', () => {
     word_relationships: [
       { name: "Opposite words", file: basePath + "data/word_relationships/antonyms.json" },
       { name: "Similar words", file: basePath + "data/word_relationships/synonyms.json" },  
-      { name: "Common prepositions", file: basePath + "data/word_relationships/prepositions.json" },   
+      { name: "Common prepositions", file: basePath + "data/word_relationships/prepositions.json" },
+      { name: "Common adverbs", file: basePath + "data/word_relationships/adverb.json" },   
       { name: "Word families, compound nouns", file: basePath + "data/word_relationships/compounds.json" },
       { name: "Fixed expressions, idiomatic phrases", file: basePath + "data/word_relationships/idioms.json" }
     ],
@@ -124,18 +127,45 @@ document.addEventListener('DOMContentLoaded', () => {
     showCard();
   }
 
+  reverseBtn.addEventListener('click', () => {
+    reverseMode = !reverseMode;   // toggle reverse mode
+    flipped = false;              // reset flip state
+    showCard();
+
+    // toggle visual style
+    if (reverseMode) {
+      reverseBtn.classList.add('active-reverse');
+    } else {
+      reverseBtn.classList.remove('active-reverse');
+    }
+
+  });
+
   function showCard() {
     if (!cards.length) {
       flashcard.textContent = 'No flashcards available.';
       return;
     }
+
     const card = cards[indexOrder[currentIndex]];
-    flashcard.textContent = flipped ? card.back : card.front;
+    //flashcard.textContent = flipped ? card.back : card.front;
+
+    // In reverse mode, show back first
+    if (reverseMode) {
+      flashcard.textContent = flipped ? card.front : card.back;
+    } else {
+      flashcard.textContent = flipped ? card.back : card.front;
+    }
   }
 
   //nextBtn.onclick = () => { currentIndex = (currentIndex + 1) % cards.length; flipped = false; showCard(); };
   //prevBtn.onclick = () => { currentIndex = (currentIndex - 1 + cards.length) % cards.length; flipped = false; showCard(); };
-  
+ 
+  flashcard.addEventListener('click', () => {
+    flipped = !flipped; 
+    showCard();
+  });
+
   preventDoubleClick(nextBtn, () => {
     if (currentIndex < cards.length - 1) {
       currentIndex = (currentIndex + 1) % cards.length;
