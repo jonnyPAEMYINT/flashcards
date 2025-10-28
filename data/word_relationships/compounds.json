@@ -25,7 +25,6 @@
   {"front": "das Bäckereigeschäft", "back": "bakery shop"},
   {"front": "der Kühlschrankinhalt", "back": "contents of the fridge"},
   {"front": "die Zeitungsausgabe", "back": "newspaper edition"},
-  {"front": "das Klassenzimmerfenster", "back": "classroom window"},
   {"front": "der Schultaschenriemen", "back": "school bag strap"},
   {"front": "die Bücherseitenzahl", "back": "number of book pages"},
   {"front": "das Hotelzimmerbett", "back": "hotel room bed"},
@@ -88,7 +87,6 @@
   {"front": "das Paketfach", "back": "parcel box"},
   {"front": "der Briefumschlag", "back": "envelope"},
   {"front": "die Wohnungstür", "back": "apartment door"},
-  {"front": "das Gartentor", "back": "garden gate"},
   {"front": "der Fahrradständer", "back": "bike rack"},
   {"front": "die Straßenkreuzung", "back": "street intersection"},
   {"front": "das Denkmaldenkmal", "back": "monument / memorial"}
