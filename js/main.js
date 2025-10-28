@@ -52,8 +52,6 @@ document.addEventListener('DOMContentLoaded', () => {
       { name: "Similar words", file: basePath + "data/word_relationships/synonyms.json" },  
       { name: "Common prepositions", file: basePath + "data/word_relationships/prepositions.json" },   
       { name: "Word families, compound nouns", file: basePath + "data/word_relationships/compounds.json" },
-      { name: "Separable verbs", file: basePath + "data/verbs/separable_verbs.json" },
-      { name: "Werbs mit preposition", file: basePath + "data/verbs/preposition_verbs.json" },
       { name: "Fixed expressions, idiomatic phrases", file: basePath + "data/word_relationships/idioms.json" }
     ],
     situations: [
