@@ -161,7 +161,12 @@ document.addEventListener('DOMContentLoaded', () => {
   //nextBtn.onclick = () => { currentIndex = (currentIndex + 1) % cards.length; flipped = false; showCard(); };
   //prevBtn.onclick = () => { currentIndex = (currentIndex - 1 + cards.length) % cards.length; flipped = false; showCard(); };
  
-  flashcard.addEventListener('click', () => {
+  //flashcard.addEventListener('click', () => {
+  //  flipped = !flipped; 
+  //  showCard();
+  //});
+
+  preventDoubleClick(flashcard, () => {
     flipped = !flipped; 
     showCard();
   });
