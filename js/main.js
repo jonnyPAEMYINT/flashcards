@@ -21,10 +21,10 @@ document.addEventListener('DOMContentLoaded', () => {
   let reverseMode = false; // new variable to track reverse mode
 
   const flashcardColors = [
-                            '#a8d08d', // banana leaf green
-                            '#ffe066', // warm yellow
-                            '#ff6b6b', // soft red
-                            '#4d9de0'  // soft sky blue
+                            '#d4edc4', // green
+                            '#fff4b3', // yellow
+                            '#ffd6d1', // coral
+                            '#cbe7ff'  // blue
                           ];
 
   // Define datasets
@@ -136,6 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
     currentIndex = 0;
     flipped = false;
     showCard();
+    changeflashcardcolour()
   }
 
   reverseBtn.addEventListener('click', () => {
@@ -168,9 +169,10 @@ document.addEventListener('DOMContentLoaded', () => {
       flashcard.textContent = flipped ? card.back : card.front;
     }
 
-   //Pick random color for flashcard
-   //const randomColor = flashcardColors[Math.floor(Math.random() * flashcardColors.length)];
-   //flashcard.style.border = '3px solid ' + randomColor;
+    //Pick random color for flashcard
+    //const randomColor = flashcardColors[Math.floor(Math.random() * flashcardColors.length)];
+    //flashcard.style.border = '3px solid #fff';
+    //flashcard.style.background = randomColor;
 
     // Handle flip display
     if (flipped) {
@@ -183,10 +185,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   }
 
+  function changeflashcardcolour(){
+    //Pick random color for flashcard
+    const randomColor = flashcardColors[Math.floor(Math.random() * flashcardColors.length)];
+    flashcard.style.border = '3px solid #fff';
+    flashcard.style.background = randomColor;
+  }
+
   preventDoubleClick(flashcard, () => {
     flipped = !flipped; 
     flashcard.classList.toggle('flipped');
-    showCard();
+    showCard();    
   });
 
   preventDoubleClick(nextBtn, () => {
@@ -200,6 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
       showCard();
       flashcard.textContent = "Well done! You’ve reached the end of the flashcards.";      
     }
+    changeflashcardcolour();
   });
 
   preventDoubleClick(prevBtn, () => {
@@ -213,6 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
       flipped = false;
       showCard();           
     } 
+    changeflashcardcolour();
   });
 
   flipBtn.onclick = () => { flipped = !flipped; showCard(); };
