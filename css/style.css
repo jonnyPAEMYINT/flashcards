@@ -195,24 +195,29 @@ footer {
   border-radius: 13px 13px 0 0;
 }
 
-/* MOBILE RESPONSIVENESS */
-@media (max-width: 480px) {
-  .card {
-    height: 150px;
-    font-size: 1.2rem;
+/* Mobile Adjustments (iPhone Mini 12 ~ 375px width) */
+@media (max-width: 400px) {
+  h1 {
+    font-size: 1.6rem;
+    padding: 0.8rem 0;
   }
 
-  h1 {
+  select {
+    width: 90%;
+    font-size: 0.95rem;
+    padding: 0.5rem 1rem;
+  }
+
+  .card {
+    height: 260px;
     font-size: 1.3rem;
-    margin: 1rem 0 0.8rem 0;
+    padding: 1rem;
   }
 
   button {
-    height: 32px;
+    min-width: 90px;
+    height: 38px;
     font-size: 0.95rem;
-  }
-
-  #card-count {
-    font-size: 0.95rem;
+    padding: 0.5rem 1.5rem;
   }
 }
