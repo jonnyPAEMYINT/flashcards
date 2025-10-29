@@ -87,7 +87,7 @@ select:hover {
 .card {
   margin-top: 1.2rem;
   width: 100%;
-  height: clamp(200px, 35vw, 280px);
+  height: 290px;
   border-radius: 16px;
   display: flex;
   align-items: center;
@@ -224,7 +224,7 @@ footer {
   /* Ensure all buttons inside button-group are same size */
   .button-group button {
     width: 100px;       /* fixed width */
-    height: 40px;       /* fixed height */
+    height: 50px;       /* fixed height */
     font-size: 0.95rem;
     padding: 0;         /* remove extra padding to avoid stretching */
     flex: 0 0 auto;     /* disable flex growth/shrink */
