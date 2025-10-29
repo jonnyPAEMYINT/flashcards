@@ -209,14 +209,14 @@ footer {
   }
 
   .card {
-    height: 260px;
+    height: 280px !important;
     font-size: 1.3rem;
     padding: 1rem;
   }
 
   button {
     min-width: 90px;
-    height: 38px;
+    height: 40px;
     font-size: 0.95rem;
     padding: 0.5rem 1.5rem;
   }
