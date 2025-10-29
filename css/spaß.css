@@ -23,7 +23,7 @@ h1 {
 
 /* Fun, vibrant links */
 a {
-  color: #fff;           /* lively red-pink */
+  color: #000;           /* lively red-pink */
   text-decoration: none;    /* no underline */
   transition: color 0.3s;  /* smooth hover effect */
 }
@@ -47,7 +47,7 @@ select {
   padding: 0.6rem 1rem;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,0.3);
+  border: 2px solid #fff;
   box-shadow: 0 3px 10px rgba(0,0,0,0.2);
   font-size: 1rem;
   background: #fff8dc;
