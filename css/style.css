@@ -1,65 +1,105 @@
-html, body {
-  font-family: 'Helvetica Neue', Arial, sans-serif;
-  font-size: 1rem; /* base font size */
-  touch-action: manipulation; /* disables double-tap zoom and pinch
-  user-select: none;        /* prevent text selection */
-  -webkit-user-select: none;
-  -ms-user-select: none;
+/* GENERAL RESET */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 body {
-  display: flex;
-  flex-direction: column; /* allow footer at bottom */
-  min-height: 100vh;
-  background: #fff;
-
-/* Heading */
-h1 {
-  color: #000;
-  text-align: center;
-  padding: 15px 0;
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  font-size: 1rem;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;  
+  flex-direction: column;
+  min-height: 100vh
+  background: linear-gradient(135deg, #fff8dc 0%, #f0f4f8 100%);
 }
 
+.wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 1rem;  
+}
+
+h1 {
+  width: 100%;
+  font-size: 1.8rem;
+  color: #fff;
+  text-align: center;
+  padding-top: 0;
+  padding: 0.6rem 0.8rem;
+  border-radius: 12px;
+  background: linear-gradient(to right, #a8d08d, #6fa86f);
+  border-radius: 0 0 16px 16px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+  margin: 1rem 0 1.5rem 0;
+}
+
+h1 + select {
+  margin-top: 1rem;
+}
+
+footer {
+  text-align: center;
+  padding: 1rem 0;
+  font-size: 0.9rem;
+  color: #000;
+  background: #fff;
+}
 
 /* Dropdown */
 select {
-  width: 80%;
+  width: 90%;
   max-width: 400px;
   border-radius: 12px;
-  padding: 0.6rem 1rem;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,0.3);
-  box-shadow: 0 3px 10px rgba(0,0,0,0.2);
-  font-size: 1rem; /* base font size */
+  padding: 0.5rem 1rem;
+  border: 1px solid #ccc; 
+  background: #fefdf7;
+  box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+  font-size: 1rem;
   color: #000;
   cursor: pointer;
-  transition: transform 0.2s, background 0.2s;
+  margin-top: 0;
   margin-bottom: 1rem;
+  display: block;
+  transition: transform 0.2s, background 0.2s;  
 }
 
 select:hover {
-  background: rgba(255,255,255,0.35);
   transform: scale(1.02);
+  background: #fffde7;
 }
 
-/* Flashcard */
+.card-container {
+  width: 90%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .card {
-  height: 250px;
+  margin-top: 1.2rem;
+  width: 100%;
+  height: 200px !important;
   border-radius: 16px;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 6px 15px rgba(0,0,0,0.2);
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
   padding: 1rem;
-  margin-top: 1rem;
-  position: relative;
-  transition: transform 0.3s, background 0.3s;
-  transform-style: preserve-3d;
+  box-shadow: 0 6px 12px rgba(0,0,0,0.15);
   cursor: pointer;
+  transition: transform 0.4s ease, background 0.4s ease;
+  position: relative;
+  transform-style: preserve-3d;
+  background: #ffeec9;
+  margin-bottom: 0.5rem;
 }
 
 .card .front,
@@ -86,86 +126,93 @@ select:hover {
 #card-count {
   text-align: center;
   font-size: 1rem;
-  color: #000;
+  color: #333;
   font-weight: 500;
-  margin-top: 10px;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
+  margin-top: 0.3rem;
 }
 
 /* Controls (buttons) */
 .controls {
+  width: 100%;
   display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-  flex-direction: column; /* stack groups vertically */
+  flex-direction: column;
+  gap: 0.5rem;
   align-items: center;
-  justify-content: center;
-  margin-bottom: 3rem; /* space below buttons before footer */
+  margin-top: 1rem;
 }
 
 .button-group {
   display: flex;
-  gap: 1rem; /* space between buttons in the same row */
+  gap: 0.5rem;
   justify-content: center;
   flex-wrap: wrap;
-  max-width: 400px; /* keeps row width controlled */
+  max-width: 100%;
 }
 
 button {
-  min-width: 100px; /* consistent minimum width */
-  height: 35px; /* consistent height */
-  padding: 0.5rem 2rem;
+  flex: 1 1 30%; /* three buttons per row */
+  min-width: 90px;
+  max-width: 120px
+  height: 35px;
+  padding: 0.4rem 0.8rem;
   border: none;
   border-radius: 12px;
-  background: #4CAF50;
+  background: linear-gradient(to bottom, #4CAF50, #3e8e41);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
   color: #fff;
-  cursor: pointer;
   font-size: 1rem;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  transition: transform 0.2s, background 0.2s;  
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease;
 }
 
 button.active-reverse {
-  background: rgba(255, 100, 100, 0.8); /* noticeable red/pink */
+  background: linear-gradient(to bottom, #ff6b6b, #e04f4f);
   color: #fff;
-  transform: scale(1.1); /* slightly larger to emphasize */
+  transform: scale(1.1);
   box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
 
 button:hover {
   transform: scale(1.05);
-  background: #45A049;
-  color:#fff;
+  background: linear-gradient(to bottom, #3e8e41, #2f6d31);
+}
+
+.button-group:last-child {
+  margin-bottom: 1em; /* add space after the last row only */
 }
 
 /* Footer */
 footer {
+  width: 100%;
+  padding: 12px 0;
   text-align: center;
-  padding: 15px 0;
+  color: #555;
+  background: #f8f8f8;
+  border-top: 1px solid #ddd;
   font-size: 0.9rem;
-  color: #000;
-  background: #fff;
-  border-radius: 8px;
+  margin-top: auto;
+  border-radius: 13px 13px 0 0;
 }
 
-/* Mobile font adjustments */
+/* MOBILE RESPONSIVENESS */
 @media (max-width: 480px) {
-  html, body {
-    font-size: 1.2rem; /* slightly smaller base font for mobile */
+  .card {
+    height: 150px;
+    font-size: 1.2rem;
   }
 
   h1 {
-    font-size: 1.2rem; /* adjust heading for mobile */
+    font-size: 1.3rem;
+    margin: 1rem 0 0.8rem 0;
   }
 
-  select, button {
-    padding: 0.4rem 1rem; /* slightly smaller padding */
+  button {
+    height: 32px;
+    font-size: 0.95rem;
   }
 
-  .card {
-    font-size: 1.2rem; /* slightly smaller base font for mobile */
-    height: 200px; /* smaller card height */
-    padding: 0.8rem;
+  #card-count {
+    font-size: 0.95rem;
   }
 }
