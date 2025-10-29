@@ -4,10 +4,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const prevBtn = document.getElementById('prev');
   const flipBtn = document.getElementById('flip');
   const shuffleBtn = document.getElementById('shuffle'); // Shuffle button
-  const resetBtn = document.getElementById('reset');     // Reset button
+  const resetBtn = document.getElementById('restart');     // Reset button
   const mainCategory = document.getElementById('main-category'); // new main category dropdown
   const subCategory = document.getElementById('sub-category');   // new subcategory dropdown
   const reverseBtn = document.getElementById('reverse');
+  const cardCount = document.getElementById('card-count');
 
   //const basePath = ""
   const basePath = "https://jonnypaemyint.github.io/flashcards/"
@@ -18,6 +19,13 @@ document.addEventListener('DOMContentLoaded', () => {
   let flipped = false;
   let finished = false;
   let reverseMode = false; // new variable to track reverse mode
+
+  const flashcardColors = [
+                            '#a8d08d', // banana leaf green
+                            '#ffe066', // warm yellow
+                            '#ff6b6b', // soft red
+                            '#4d9de0'  // soft sky blue
+                          ];
 
   // Define datasets
   const datasets = {
@@ -145,13 +153,13 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   function showCard() {
+
     if (!cards.length) {
       flashcard.textContent = 'No flashcards available.';
       return;
     }
 
     const card = cards[indexOrder[currentIndex]];
-    //flashcard.textContent = flipped ? card.back : card.front;
 
     // In reverse mode, show back first
     if (reverseMode) {
@@ -159,18 +167,25 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       flashcard.textContent = flipped ? card.back : card.front;
     }
-  }
 
-  //nextBtn.onclick = () => { currentIndex = (currentIndex + 1) % cards.length; flipped = false; showCard(); };
-  //prevBtn.onclick = () => { currentIndex = (currentIndex - 1 + cards.length) % cards.length; flipped = false; showCard(); };
- 
-  //flashcard.addEventListener('click', () => {
-  //  flipped = !flipped; 
-  //  showCard();
-  //});
+   //Pick random color for flashcard
+   //const randomColor = flashcardColors[Math.floor(Math.random() * flashcardColors.length)];
+   //flashcard.style.border = '3px solid ' + randomColor;
+
+    // Handle flip display
+    if (flipped) {
+      flashcard.classList.add('flipped');
+    } else {
+      flashcard.classList.remove('flipped');
+    }
+
+    cardCount.textContent = (currentIndex + 1) + "/" + cards.length;
+
+  }
 
   preventDoubleClick(flashcard, () => {
     flipped = !flipped; 
+    flashcard.classList.toggle('flipped');
     showCard();
   });
 
@@ -190,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
   preventDoubleClick(prevBtn, () => {
     if (currentIndex > 0) {
       if(finished == true){
-          currentIndex = currentIndex
+          currentIndex = cards.length - 1; // last card
           finished = false;
       }else{
         currentIndex = (currentIndex - 1 + cards.length) % cards.length;
