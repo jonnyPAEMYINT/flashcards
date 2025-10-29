@@ -42,9 +42,5 @@
   {"front": "der Tempel", "back": "temple"},
   {"front": "das Denkmal", "back": "monument"},
   {"front": "der Turm", "back": "tower"},
-  {"front": "die Brücke", "back": "bridge"},
-  {"front": "die Straße", "back": "street"},
-  {"front": "der Markt", "back": "market"},
-  {"front": "die Universität", "back": "university"},
-  {"front": "der Garten", "back": "garden"}
+  {"front": "der Markt", "back": "market"}
 ]
