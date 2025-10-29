@@ -196,8 +196,6 @@ footer {
   border-radius: 13px 13px 0 0;
 }
 
-
-/* Mobile Adjustments (iPhone Mini 12 ~ 375px width) */
 @media (max-width: 400px) {
   h1 {
     font-size: 1.6rem;
@@ -221,5 +219,14 @@ footer {
     height: 40px;
     font-size: 0.95rem;
     padding: 0.5rem 1.5rem;
+  }
+
+  /* Ensure all buttons inside button-group are same size */
+  .button-group button {
+    width: 100px;       /* fixed width */
+    height: 40px;       /* fixed height */
+    font-size: 0.95rem;
+    padding: 0;         /* remove extra padding to avoid stretching */
+    flex: 0 0 auto;     /* disable flex growth/shrink */
   }
 }
