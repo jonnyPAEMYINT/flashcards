@@ -100,8 +100,8 @@ select:hover {
   position: relative;
   transform-style: preserve-3d;
   background: #ffeec9;
-  margin-bottom: 0.5rem;
-  border: "3px solid #fff";
+  margin-bottom: 0.5rem;  
+  border: 3px solid #fff;
 }
 
 .card .front,
