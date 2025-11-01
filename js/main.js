@@ -9,7 +9,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const subCategory = document.getElementById('sub-category');   // new subcategory dropdown
   const reverseBtn = document.getElementById('reverse');
   const cardCount = document.getElementById('card-count');
-
+  const slider = document.getElementById('card-slider');
+  
   //const basePath = ""
   const basePath = "https://jonnypaemyint.github.io/flashcards/"
 
@@ -19,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let flipped = false;
   let finished = false;
   let reverseMode = false; // new variable to track reverse mode
+  let currentCardIndex = 1;
 
   const flashcardColors = [
                             '#d4edc4', // green
@@ -183,6 +185,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     cardCount.textContent = (currentIndex + 1) + "/" + cards.length;
 
+    slider.max = cards.length - 1;
+    slider.value = currentIndex;
   }
 
   function changeflashcardcolour(){
@@ -191,6 +195,12 @@ document.addEventListener('DOMContentLoaded', () => {
     flashcard.style.border = '3px solid #fff';
     flashcard.style.background = randomColor;
   }
+
+  slider.addEventListener('input', (e) => {
+    currentIndex = parseInt(e.target.value);
+    flipped = false;
+    showCard();
+  });
 
   preventDoubleClick(flashcard, () => {
     flipped = !flipped; 
