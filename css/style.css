@@ -101,6 +101,7 @@ select:hover {
   transform-style: preserve-3d;
   background: #ffeec9;
   margin-bottom: 0.5rem;
+  border: "3px solid #fff";
 }
 
 .card .front,
@@ -131,6 +132,40 @@ select:hover {
   font-weight: 500;
   margin-bottom: 0.5rem;
   margin-top: 0.3rem;
+}
+
+.slider-container {
+  width: 80%;
+  max-width: 400px;
+  margin: 0.5rem auto 0 auto;
+  position: relative;    
+  height: 30px; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#card-slider {
+  width: 100%;
+  position: absolute; 
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+#card-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  background: #4CAF50;
+  border-radius: 50%;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  cursor: grab;
+  transition: transform 0.2s;
+}
+
+#card-slider::-webkit-slider-thumb:active {
+  transform: scale(1.2);
 }
 
 /* Controls (buttons) */
