@@ -10,6 +10,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const reverseBtn = document.getElementById('reverse');
   const cardCount = document.getElementById('card-count');
   const slider = document.getElementById('card-slider');
+  const yearSpan = document.getElementById("year");
+  const today = new Date();
+  
   
   //const basePath = ""
   const basePath = "https://jonnypaemyint.github.io/flashcards/"
@@ -77,8 +80,40 @@ document.addEventListener('DOMContentLoaded', () => {
       { name: "Office/school terms, phrases", file: basePath + "data/situations/work_school.json" },
       { name: "Sports, hobbies, leisure", file: basePath + "data/situations/hobbies.json" },
       { name: "Health, accidents, urgent situations", file: basePath + "data/situations/emergencies.json" }
+    ],
+    sicher: {
+    "A2.1": [
+      {name: "Lektion 1 (Ankommen)", file: basePath + "data/sicher/a2_1/a21_lektion1_ankommen.json"},
+      {name: "Lektion 2 (Zu Hause)", file: basePath + "data/sicher/a2_1/a21_lektion2_zuhause.json"},
+      {name: "Lektion 3 (Essen und trinken)", file: basePath + "data/sicher/a2_1/a21_lektion3_essen_und_trinken.json"},
+      {name: "Lektion 4 (Arbeitswelt)", file: basePath + "data/sicher/a2_1/a21_lektion4_arbeitswelt.json"},
+      {name: "Lektion 5 (Sport und Fitness)", file: basePath + "data/sicher/a2_1/a21_lektion5_sport_und_fitness.json"},
+      {name: "Lektion 6 (Ausbildung und Karriere)", file: basePath + "data/sicher/a2_1/a21_lektion6_ausbildung_und_karriere.json"},
+      {name: "Lektion 7 (Feste und Geschenke)", file: basePath + "data/sicher/a2_1/a21_lektion7_Feste_und_geschenke.json"}
+    ],
+    "A2.2": [
+      {name: "Lektion 8 (Am Wochenende)", file: basePath + "data/sicher/a2_2/a22_lektion8_am_wochenende.json"},
+      {name: "Lektion 9 (Meine Sachen)", file: basePath + "data/sicher/a2_2/a22_lektion9_meine_sachen.json"},
+      {name: "Lektion 10 (Kommunikation)", file: basePath + "data/sicher/a2_2/a22_lektion10_kommunikation.json"},
+      {name: "Lektion 11 (Unterwegs)", file: basePath + "data/sicher/a2_2/a22_lektion11_unterwegs.json"},
+      {name: "Lektion 12 (Reisen)", file: basePath + "data/sicher/a2_2/a22_lektion12_reisen.json"},
+      {name: "Lektion 13 (Geld)", file: basePath + "data/sicher/a2_2/a22_lektion13_geld.json"},
+      {name: "Lektion 14 (Lebensstationen)", file: basePath + "data/sicher/a2_2/a22_lektion14_lebensstationen.json"}
+    ],
+    "B1.1": [
+      {name: "Lektion 1 (Glück im Alltag)", file: basePath + "data/sicher/b1_1/b1_lektion1_glück_im_alltag.json"},
+      {name: "Lektion 2 (Unterhaltung)", file: basePath + "data/sicher/b1_1/b1_lektion2_unterhaltung.json"},
+      {name: "Lektion 3 (Gesund bleiben)", file: basePath + "data/sicher/b1_1/b1_lektion3_gesund_bleiben.json"},
+      {name: "Lektion 4 (Sprachen)", file: basePath + "data/sicher/b1_1/b1_lektion4_sprachen.json"},
+      {name: "Lektion 5 (Eine Arbeit finden)", file: basePath + "data/sicher/b1_1/b1_lektion5_eine_arbeit_finden.json"},
+      {name: "Lektion 6 (Dienstleistung)", file: basePath + "data/sicher/b1_1/b1_lektion6_dienstleistung.json"},
+      {name: "Lektion 7 (Rund ums Wohnen)", file: basePath + "data/sicher/b1_1/b1_lektion7_rund_ums_wohnen.json"}
     ]
+  }
+
   };
+
+  /**
 
   // Populate subcategory based on main category
   function populateSubcategories(category) {
@@ -93,6 +128,55 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     // Load the first subcategory automatically
     if (subCategory.value) loadCards(subCategory.value);
+  }
+
+  **/
+  
+  // Populate subcategory based on main category with grouped headers
+  function populateSubcategories(category) {
+    subCategory.innerHTML = '';
+
+    if (!datasets[category]) return;
+
+    const ds = datasets[category];
+
+    if (Array.isArray(ds)) {
+      // Normal flat datasets
+      ds.forEach((item, index) => {
+        const option = document.createElement('option');
+        option.value = item.file;
+        option.textContent = item.name;
+        if (index === 0) option.selected = true;
+        subCategory.appendChild(option);
+      });
+    } else {
+      // Grouped dataset (like 'sicher')
+      Object.keys(ds).forEach(groupName => {
+        // Add a non-selectable group header with arrow
+        const headerOption = document.createElement('option');
+        headerOption.textContent = `▶ ${groupName}`; // arrow to indicate group
+        headerOption.disabled = true;
+        headerOption.style.fontWeight = 'bold';
+        headerOption.style.backgroundColor = '#f0f0f0';
+        headerOption.style.color = '#333';
+        subCategory.appendChild(headerOption);
+
+        // Add items under the header
+        ds[groupName].forEach(item => {
+          const option = document.createElement('option');
+          option.value = item.file;
+          option.textContent = `   ${item.name}`; // indent for readability
+          subCategory.appendChild(option);
+        });
+      });
+    }
+
+    // Automatically select and load the first selectable item
+    const firstSelectable = Array.from(subCategory.options).find(opt => !opt.disabled);
+    if (firstSelectable) {
+      firstSelectable.selected = true;
+      loadCards(firstSelectable.value);
+    }
   }
 
   mainCategory.addEventListener('change', () => {
@@ -254,5 +338,8 @@ document.addEventListener('DOMContentLoaded', () => {
   [nextBtn, prevBtn, shuffleBtn, resetBtn].forEach(btn => {
     preventDoubleClick(btn, () => btn.click());
   });
+
+  //copyright year
+  yearSpan.textContent = today.getFullYear();
 
 });
