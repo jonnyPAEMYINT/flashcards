@@ -38,5 +38,14 @@
   {"front": "ehrfürchtig", "back": "awed"},
   {"front": "verlegen", "back": "embarrassed"},
   {"front": "mutig", "back": "courageous"},
-  {"front": "schuldig", "back": "guilty"}
+  {"front": "schuldig", "back": "guilty"},
+  {"front": "verärgert", "back": "annoyed"},
+  {"front": "beunruhigt", "back": "uneasy"},
+  {"front": "erstaunt", "back": "astonished"},
+  {"front": "entschlossen", "back": "determined"},
+  {"front": "beschämt", "back": "ashamed"},
+  {"front": "rücksichtsvoll", "back": "considerate"},
+  {"front": "zuverlässig", "back": "reliable"},
+  {"front": "aufgeschlossen", "back": "open-minded"},
+  {"front": "tolerant", "back": "tolerant"}
 ]
