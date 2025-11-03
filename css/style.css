@@ -87,7 +87,7 @@ select:hover {
 .card {
   margin-top: 0.5rem;
   width: 100%;
-  height: clamp(280px, 45vh, 420px);
+  height: clamp(280px, 55vh, 520px);
   border-radius: 16px;
   display: flex;
   align-items: center;
@@ -115,7 +115,7 @@ select:hover {
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  font-size: clamp(1.3rem, 2.5vw, 1.8rem);
+  font-size: clamp(1.3rem, 3vw, 1.8rem);
 }
 
 .card .back {
