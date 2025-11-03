@@ -38,19 +38,19 @@ document.addEventListener('DOMContentLoaded', () => {
       { name: "Doctor visits, emergencies", file: basePath + "data/phrases/health.json" }
     ],
     vocabulary: [
-      { name: "Family members, relationships", file: basePath + "data/vocabulary/family.json" },
-      { name: "Pets, farm, wild", file: basePath + "data/vocabulary/animals.json" },
-      { name: "City, home, nature", file: basePath + "data/vocabulary/places.json" },
-      { name: "Modes of transport", file: basePath + "data/vocabulary/transport.json" },
+      { name: "Family members & relationships", file: basePath + "data/vocabulary/family.json" },
+      { name: "Emotions & personality traits", file: basePath + "data/vocabulary/feelings.json" },
+      { name: "Health & body", file: basePath + "data/vocabulary/health_body.json" },
+      { name: "Clothes & describing people", file: basePath + "data/vocabulary/clothing.json" },
+      { name: "Colours, Shapes, and Sizes", file: basePath + "data/vocabulary/colors_shapes_sizes.json" },
       { name: "Fruits, vegetables, meals, drinks", file: basePath + "data/vocabulary/food_drink.json" },
-      { name: "Clothes, colors, describing people", file: basePath + "data/vocabulary/clothing.json" },
-      { name: "Emotions, personality traits", file: basePath + "data/vocabulary/feelings.json" },
       { name: "Household items, rooms, objects", file: basePath + "data/vocabulary/daily_life.json" },
-      { name: "Colors, Shapes, and Sizes", file: basePath + "data/vocabulary/colors_shapes_sizes.json" },
+      { name: "City, home, nature", file: basePath + "data/vocabulary/places.json" },
+      { name: "Pets, farm, wild", file: basePath + "data/vocabulary/animals.json" },
+      { name: "Modes of transport", file: basePath + "data/vocabulary/transport.json" },
       { name: "Day, month, weather, seasons", file: basePath + "data/vocabulary/weather_season.json" },
       { name: "School & Education", file: basePath + "data/vocabulary/school_education.json" },
-      { name: "Jobs & Professions", file: basePath + "data/vocabulary/jobs_professions.json" },
-      { name: "Health & body", file: basePath + "data/vocabulary/health_body.json" }
+      { name: "Jobs & Professions", file: basePath + "data/vocabulary/jobs_professions.json" }
     ],
     verbs: [
       { name: "A1-A2 common verbs", file: basePath + "data/verbs/a12_common_verbs.json" },
