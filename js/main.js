@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
       { name: "Colours, Shapes, and Sizes", file: basePath + "data/vocabulary/colors_shapes_sizes.json" },
       { name: "Fruits, vegetables, meals, drinks", file: basePath + "data/vocabulary/food_drink.json" },
       { name: "Household items, rooms, objects", file: basePath + "data/vocabulary/daily_life.json" },
-      { name: "City, home, nature", file: basePath + "data/vocabulary/places.json" },
+      { name: "City & nature", file: basePath + "data/vocabulary/places.json" },
       { name: "Pets, farm, wild", file: basePath + "data/vocabulary/animals.json" },
       { name: "Modes of transport", file: basePath + "data/vocabulary/transport.json" },
       { name: "Day, month, weather, seasons", file: basePath + "data/vocabulary/weather_season.json" },
