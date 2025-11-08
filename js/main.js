@@ -72,6 +72,8 @@ document.addEventListener('DOMContentLoaded', () => {
       { name: "Common prepositions", file: basePath + "data/word_relationships/prepositions.json" },
       { name: "Common adverbs", file: basePath + "data/word_relationships/adverb.json" },   
       { name: "Word families, compound nouns", file: basePath + "data/word_relationships/compounds.json" },
+      { name: "Verbs to nouns", file: basePath + "data/word_relationships/verbs_nomen.json" },
+      { name: "Prefixed verbs to nouns", file: basePath + "data/word_relationships/prefixed_verbs_nomen.json" },
       { name: "Fixed expressions, idiomatic phrases", file: basePath + "data/word_relationships/idioms.json" }
     ],
     situations: [
