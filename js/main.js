@@ -13,7 +13,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const yearSpan = document.getElementById("year");
   const today = new Date();
   
-  
   //const basePath = ""
   const basePath = "https://jonnypaemyint.github.io/flashcards/"
 
@@ -23,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let flipped = false;
   let finished = false;
   let reverseMode = false; // new variable to track reverse mode
+  let quizMode = false;
   let currentCardIndex = 1;
 
   const flashcardColors = [
@@ -122,25 +122,6 @@ document.addEventListener('DOMContentLoaded', () => {
       ]
     }
   };
-
-  /**
-
-  // Populate subcategory based on main category
-  function populateSubcategories(category) {
-    subCategory.innerHTML = '';
-    if (!datasets[category]) return;
-    datasets[category].forEach((ds, index) => {
-      const option = document.createElement('option');
-      option.value = ds.file;
-      option.textContent = ds.name;
-      if (index === 0) option.selected = true; // select first subcategory by default
-      subCategory.appendChild(option);
-    });
-    // Load the first subcategory automatically
-    if (subCategory.value) loadCards(subCategory.value);
-  }
-
-  **/
   
   // Populate subcategory based on main category with grouped headers
   function populateSubcategories(category) {
@@ -187,6 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
       firstSelectable.selected = true;
       loadCards(firstSelectable.value);
     }
+    
   }
 
   mainCategory.addEventListener('change', () => {
@@ -210,6 +192,8 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       flashcard.textContent = 'Failed to load flashcards.';
     }
+
+    if (quizMode == true) startQuizMode();
   }
 
   function shuffleArray(array) {
@@ -223,6 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
     indexOrder = cards.map((_, i) => i);
     currentIndex = 0;
     flipped = false;
+    finished = false
     showCard();
   }
 
@@ -231,6 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
     shuffleArray(indexOrder);
     currentIndex = 0;
     flipped = false;
+    finished = false
     showCard();
     changeflashcardcolour()
   }
@@ -238,6 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
   reverseBtn.addEventListener('click', () => {
     reverseMode = !reverseMode;   // toggle reverse mode
     flipped = false;              // reset flip state
+    finished = false
     showCard();
 
     // toggle visual style
@@ -250,7 +237,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   function showCard() {
-
     if (!cards.length) {
       flashcard.textContent = 'No flashcards available.';
       return;
@@ -265,11 +251,6 @@ document.addEventListener('DOMContentLoaded', () => {
       flashcard.textContent = flipped ? card.back : card.front;
     }
 
-    //Pick random color for flashcard
-    //const randomColor = flashcardColors[Math.floor(Math.random() * flashcardColors.length)];
-    //flashcard.style.border = '3px solid #fff';
-    //flashcard.style.background = randomColor;
-
     // Handle flip display
     if (flipped) {
       flashcard.classList.add('flipped');
@@ -281,6 +262,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     slider.max = cards.length - 1;
     slider.value = currentIndex;
+
+    if (finished == false) {
+      quizButton.style.display = "none";
+    }
+
   }
 
   function changeflashcardcolour(){
@@ -311,7 +297,9 @@ document.addEventListener('DOMContentLoaded', () => {
       flipped = false;
       finished = true;
       showCard();
-      flashcard.textContent = "Well done! You’ve reached the end of the flashcards.";      
+      flashcard.textContent = 'Well done! You’ve completed all the flashcards.\n\nClick "Start Quiz" to test how much you’ve remembered.';
+      flashCardButtons.style.display = "none";
+      quizButton.style.display = "block";
     }
     changeflashcardcolour();
   });
@@ -351,5 +339,250 @@ document.addEventListener('DOMContentLoaded', () => {
 
   //copyright year
   yearSpan.textContent = today.getFullYear();
+
+
+  function stripAfterDashOrParen(str) {
+    // Remove anything after "("
+    str = str.split("(")[0].trim();
+
+    // Remove hyphen only when followed by a space "- "
+    if (str.includes("- ")) {
+        str = str.split("- ")[0].trim();
+    }
+
+    // Remove dot and everything after it
+    if (str.includes(".")) {
+        str = str.split(".")[0].trim();
+    }
+
+    return str;
+  }
+
+  // -----------------------
+  // QUIZ MODE
+  // -----------------------
+
+  const quizContainer = document.getElementById("quiz-container");
+  const startQuizBtn = document.getElementById("start-quiz");
+  const quizQuestion = document.getElementById("quiz-question");
+  const quizOptions = document.getElementById("quiz-options");
+  const quizNext = document.getElementById("quiz-next");
+  const quizExit = document.getElementById("quiz-exit");
+  const quizProgress = document.getElementById("quiz-progress");
+  const quizButton = document.querySelector(".quiz-button");
+  const cardContainer = document.querySelector(".card-container");
+  const flashCardButtons = document.querySelector(".controls");
+
+  let quizData = [];
+  let quizIndex = 0;
+  let quizStartTime;
+
+  quizExit.disabled = true;
+
+  // Load quiz data from current flashcards
+  function loadQuizData() {
+    quizData = cards.map(card => ({
+      question: card.front,
+      answer: card.back
+    }));
+    shuffleArray(quizData);
+  }
+
+  // Start quiz mode
+  startQuizBtn.addEventListener("click", () => {
+    quizStartTime = Date.now(); // start the total quiz timer
+    startQuizMode();
+  });
+
+  // Display question + options
+  function showQuizQuestion() {
+    const current = quizData[quizIndex];
+
+    current.startTime = Date.now(); // start the timing;
+    quizQuestion.textContent = current.question;
+    
+    // Update progress
+    quizProgress.textContent = `Question ${quizIndex + 1} of ${quizData.length}`;
+
+    const options = generateOptions(current.answer);
+    quizOptions.innerHTML = "";
+
+    options.forEach(opt => {
+      const btn = document.createElement("button");
+      btn.textContent = opt;
+      btn.onclick = () => checkQuizAnswer(opt, current.answer);
+      quizOptions.appendChild(btn);
+    });
+  }
+
+  // Create 4 options (1 correct + 3 random)
+  function generateOptions(correct) {
+    correct = stripAfterDashOrParen(correct);
+    const allAnswers = cards.map(c => stripAfterDashOrParen(c.back));
+    
+    // Filter out the correct answer and remove duplicates
+    const wrongSet = new Set(allAnswers.filter(a => a !== correct));
+    const wrong = Array.from(wrongSet);
+    shuffleArray(wrong);
+
+    const options = [correct, ...wrong.slice(0, 3)];
+    shuffleArray(options);
+    return options;
+  }
+
+  // Check answer
+  function checkQuizAnswer(selected, correct) {
+
+    const current = quizData[quizIndex];
+    const formattedAnaswer = stripAfterDashOrParen(correct);
+
+    // save user answer
+    current.userAnswer = selected;
+    current.isCorrect = selected === formattedAnaswer;
+    current.timeTaken = Date.now() - current.startTime;
+
+    if (current.isCorrect) {
+      flashQuizQuestion("correct", "✅ Correct!");
+    } else {
+      flashQuizQuestion("wrong", `❌ Wrong! Correct answer: ${correct}`);
+    }
+
+  }
+
+  function flashQuizQuestion(status, message) {
+    // status: "correct", "wrong", or "warning"
+    // message: text to show in #quiz-question
+    quizQuestion.textContent = message;
+
+    // Remove all previous flash classes
+    quizQuestion.classList.remove("flash-correct", "flash-wrong", "flash-warning");
+
+    // Add the new flash class
+    quizQuestion.classList.add(`flash-${status}`);
+
+    // Remove the class after animation completes
+    setTimeout(() => {
+        quizQuestion.classList.remove(`flash-${status}`);
+
+        // Enable Next button only for correct/wrong (not warning)
+        if (status !== "warning") {
+            quizNext.disabled = false;
+        }
+    }, 800);
+  }
+
+  // Next question
+  quizNext.addEventListener("click", () => {
+    const current = quizData[quizIndex];
+
+    if (!current.userAnswer) {
+        flashQuizQuestion("warning", "⚠ You didn't select an answer! This question will count as wrong.");
+
+        // Mark as wrong automatically
+        current.isCorrect = false;
+        current.userAnswer = null;
+        current.timeTaken = Date.now() - current.startTime;
+
+        // Wait a short moment before moving to next question
+        setTimeout(() => {
+            quizIndex++;
+            if (quizIndex >= quizData.length) {
+                showQuizResults();
+                return;
+            }
+            showQuizQuestion();
+        }, 1000);
+        return;
+    }
+
+    // normal condition
+    quizIndex++;
+
+    if (quizIndex >= quizData.length) {
+        quizQuestion.textContent = "Well done! You completed the quiz!";
+
+        const totalTime = Date.now() - quizStartTime; // total quiz duration
+        const totalTimeFormatted = formatTime(totalTime);
+
+        const correctCount = quizData.filter(q => q.isCorrect).length;
+        const wrongCount = quizData.length - correctCount;
+
+        // Average time in seconds
+        const avgTimeMs = quizData.reduce((sum, q) => sum + (q.timeTaken || 0), 0) / quizData.length;
+        const avgTimeFormatted = formatTime(avgTimeMs);
+
+
+        // Define feedback messages
+        const performance = correctCount / quizData.length >= 0.8
+            ? "Excellent! You're brilliant!"
+            : correctCount / quizData.length >= 0.5
+            ? "Good! Keep practicing."
+            : "Needs improvement. Keep trying!";
+
+
+        const timeInfo = totalTime >= 1 
+            ? `⏱ Total time: ${totalTimeFormatted}. Per question: ${avgTimeFormatted}`
+            : `⏱ Average per question: ${avgTimeFormatted}`
+
+        // Reuse the option buttons
+        const optionButtons = quizOptions.querySelectorAll("button");
+
+        optionButtons[0].textContent = `✅ Correct: ${correctCount}`;
+        optionButtons[1].textContent = `❌ Wrong: ${wrongCount}`;
+        optionButtons[2].textContent = timeInfo;
+        optionButtons[3].textContent = performance;
+
+        // Disable buttons so user can't click them
+        optionButtons.forEach(btn => btn.disabled = true);
+
+        // Hide Next button and show Exit button
+        quizNext.disabled = true;
+        quizNext.style.display = "none";
+
+        quizExit.disabled = false;
+        quizExit.style.display = "block";
+
+        return;
+    }
+
+    showQuizQuestion();
+  });
+
+  function formatTime(ms) {
+    const totalSeconds = Math.round(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+  }
+
+  // Exit quiz mode
+  quizExit.addEventListener("click", () => {
+    exitQuizMode();
+  });
+
+  function startQuizMode(){
+    quizMode = true;
+    loadQuizData();
+    quizIndex = 0;
+    cardContainer.style.display = "none";
+    flashCardButtons.style.display = "none";
+    quizButton.style.display = "none";
+    quizContainer.style.display = "block";
+    showQuizQuestion();
+
+    quizNext.disabled = false;
+    quizNext.style.display = "block";
+
+    quizExit.disabled = true;
+    quizExit.style.display = "none";
+  }
+
+  function exitQuizMode(){
+    quizMode = false;
+    quizContainer.style.display = "none";
+    cardContainer.style.display = "block";
+    flashCardButtons.style.display = "flex";
+    resetDeckOriginal(); // rest the flash cards;
+  }
 
 });
