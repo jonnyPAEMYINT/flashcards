@@ -1,16 +1,22 @@
 document.addEventListener('DOMContentLoaded', () => {
+  const mainCategory = document.getElementById('main-category');
+  const subCategory = document.getElementById('sub-category');
+  const cardContainer = document.querySelector(".card-container");
   const flashcard = document.getElementById('flashcard');
+  const cardCount = document.getElementById('card-count');
+  const slider = document.getElementById('card-slider');
+  const flashCardButtons = document.querySelector(".controls");
   const nextBtn = document.getElementById('next');
   const prevBtn = document.getElementById('prev');
   const flipBtn = document.getElementById('flip');
-  const shuffleBtn = document.getElementById('shuffle'); // Shuffle button
-  const resetBtn = document.getElementById('restart');     // Reset button
-  const mainCategory = document.getElementById('main-category'); // new main category dropdown
-  const subCategory = document.getElementById('sub-category');   // new subcategory dropdown
+  const shuffleBtn = document.getElementById('shuffle');
+  const resetBtn = document.getElementById('restart');
   const reverseBtn = document.getElementById('reverse');
-  const cardCount = document.getElementById('card-count');
-  const slider = document.getElementById('card-slider');
+  const nextBatchBtn = document.getElementById("next-batch");  
+  const repeatBatchBtn = document.getElementById('repeat-batch');
   const yearSpan = document.getElementById("year");
+  
+
   const today = new Date();
   
   //const basePath = ""
@@ -24,6 +30,13 @@ document.addEventListener('DOMContentLoaded', () => {
   let reverseMode = false; // new variable to track reverse mode
   let quizMode = false;
   let currentCardIndex = 1;
+
+  // BATCH
+  let allCards = [];          // Full deck (all batches)
+  let batchIndex = 0;         // Tracks which batch is showing
+  let batchSize = 15;         // Number of cards per batch
+  let totalBatches = 0;
+  let currentBatch = 0;
 
   const flashcardColors = [
                             '#d4edc4', // green
@@ -132,6 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const ds = datasets[category];
 
     if (Array.isArray(ds)) {
+
       // Normal flat datasets
       ds.forEach((item, index) => {
         const option = document.createElement('option');
@@ -140,7 +154,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (index === 0) option.selected = true;
         subCategory.appendChild(option);
       });
+
     } else {
+
       // Grouped dataset (like 'sicher')
       Object.keys(ds).forEach(groupName => {
         // Add a non-selectable group header with arrow
@@ -160,10 +176,12 @@ document.addEventListener('DOMContentLoaded', () => {
           subCategory.appendChild(option);
         });
       });
+
     }
 
     // Automatically select and load the first selectable item
     const firstSelectable = Array.from(subCategory.options).find(opt => !opt.disabled);
+
     if (firstSelectable) {
       firstSelectable.selected = true;
       loadCards(firstSelectable.value);
@@ -183,17 +201,51 @@ document.addEventListener('DOMContentLoaded', () => {
   mainCategory.value = 'phrases';
   populateSubcategories('phrases');
 
+
+  // load flasch cards
   async function loadCards(file) {
     flashcard.textContent = 'Loading...';
+
     try {
       const res = await fetch(file);
-      cards = await res.json();
-      resetDeckOriginal();
+      const loadedCards = await res.json();
+
+      allCards = loadedCards; // store full deck
+      batchIndex = 0; // reset batch index
+
+      if (allCards.length > batchSize){
+        totalBatches = Math.ceil(allCards.length / batchSize);
+      }else{
+        totalBatches = allCards.length;
+      }
+
+      loadBatch(batchIndex); // load first batch
+
     } catch (err) {
       flashcard.textContent = 'Failed to load flashcards.';
     }
 
     if (quizMode == true) startQuizMode();
+  }
+
+  function loadBatch(index) {
+    if (!allCards.length) return;
+
+    const start = index * batchSize;
+    const end = Math.min(start + batchSize, allCards.length);
+
+    // Slice the batch from the full deck
+    cards = allCards.slice(start, end);
+
+    // Reset index order and counters for the batch
+    resetDeckOriginal();
+
+    // Hide next batch button until this batch is completed
+    nextBatchBtn.style.display = "none";
+    repeatBatchBtn.style.display = "none";
+
+    // Make sure flashcard buttons are visible
+    flashCardButtons.style.display = "flex";
   }
 
   function shuffleArray(array) {
@@ -207,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
     indexOrder = cards.map((_, i) => i);
     currentIndex = 0;
     flipped = false;
-    finished = false
+    finished = false;
     showCard();
   }
 
@@ -220,6 +272,19 @@ document.addEventListener('DOMContentLoaded', () => {
     showCard();
     changeflashcardcolour()
   }
+
+  nextBatchBtn.addEventListener("click", () => {
+      currentBatch++;
+      loadBatch(currentBatch);
+      nextBatchBtn.style.display = "none";
+      repeatBatchBtn.style.display = "none";
+  });
+
+  repeatBatchBtn.addEventListener("click", () =>{
+    loadBatch(currentBatch) // reload same batch
+    repeatBatchBtn.style.display = "none";
+    nextBatchBtn.style.display = "none";
+  })
 
   reverseBtn.addEventListener('click', () => {
     reverseMode = !reverseMode;   // toggle reverse mode
@@ -264,7 +329,7 @@ document.addEventListener('DOMContentLoaded', () => {
     slider.value = currentIndex;
 
     if (finished == false) {
-      quizButton.style.display = "none";
+      startQuizBtn.style.display = "none";
     }
 
   }
@@ -283,24 +348,49 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   preventDoubleClick(flashcard, () => {
+    if(finished) return; // come to the end of the flash card. disable flip function;
+
     flipped = !flipped; 
     flashcard.classList.toggle('flipped');
-    showCard();    
+    showCard();
   });
 
   preventDoubleClick(nextBtn, () => {
     if (currentIndex < cards.length - 1) {
       currentIndex = (currentIndex + 1) % cards.length;
       flipped = false;
-      showCard();      
+      showCard();
+
     } else {
       flipped = false;
       finished = true;
       showCard();
-      flashcard.textContent = 'Well done! You’ve completed all the flashcards.\n\nClick "Start Quiz" to test how much you’ve remembered.';
+
+      const totalCards = allCards.length;
+      const cardsSeen = (currentBatch + 1) * batchSize;
+
+      if(cardsSeen < totalCards) {
+        flashcard.textContent = `Great! You've completed batch ${currentBatch + 1}.\n\nClick "Next" batch to continue or "Repeat" to practise more.`;
+        nextBatchBtn.style.display = "block";
+        repeatBatchBtn.style.display = "block";
+        flashCardButtons.style.display = "none";
+        startQuizBtn.style.display = "none";
+
+        return;
+      }
+
+      let quizInfo = 'Well done! You’ve completed all the flashcards.\n\nClick "Start Quiz" to test how much you’ve remembered.';
+      if (currentBatch >= 0) {
+         quizInfo = quizInfo.replace(/\./g,"") + ' or "Repeat" to practise more.';
+         repeatBatchBtn.style.display = "block";
+      }
+
+      nextBatchBtn.style.display = "none";
+      flashcard.textContent = quizInfo;
       flashCardButtons.style.display = "none";
-      quizButton.style.display = "block";
+      startQuizBtn.style.display = "block";
     }
+
     changeflashcardcolour();
   });
 
@@ -319,7 +409,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   flipBtn.onclick = () => { flipped = !flipped; showCard(); };
-  
   shuffleBtn.onclick = resetDeckShuffled;
   resetBtn.onclick = resetDeckOriginal;
 
@@ -369,19 +458,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const quizNext = document.getElementById("quiz-next");
   const quizExit = document.getElementById("quiz-exit");
   const quizProgress = document.getElementById("quiz-progress");
-  const quizButton = document.querySelector(".quiz-button");
-  const cardContainer = document.querySelector(".card-container");
-  const flashCardButtons = document.querySelector(".controls");
-
+  //const quizButton = document.querySelector(".quiz-button");
+  
   let quizData = [];
   let quizIndex = 0;
   let quizStartTime;
+
+  // Add a flag to prevent multiple rapid clicks
+  let quizProcessing = false;
 
   quizExit.disabled = true;
 
   // Load quiz data from current flashcards
   function loadQuizData() {
-    quizData = cards.map(card => ({
+    quizData = allCards.map(card => ({
       question: card.front,
       answer: card.back
     }));
@@ -413,6 +503,51 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.onclick = () => checkQuizAnswer(opt, current.answer);
       quizOptions.appendChild(btn);
     });
+  }
+
+  function showQuizResult(){
+    quizQuestion.textContent = "Well done! You completed the quiz!";
+
+    const totalTime = Date.now() - quizStartTime; // total quiz duration
+    const totalTimeFormatted = formatTime(totalTime);
+
+    const correctCount = quizData.filter(q => q.isCorrect).length;
+    const wrongCount = quizData.length - correctCount;
+
+    // Average time in seconds
+    const avgTimeMs = quizData.reduce((sum, q) => sum + (q.timeTaken || 0), 0) / quizData.length;
+    const avgTimeFormatted = formatTime(avgTimeMs);
+
+
+    // Define feedback messages
+    const performance = correctCount / quizData.length >= 0.8
+        ? "Excellent! You're brilliant!"
+        : correctCount / quizData.length >= 0.5
+        ? "Good! Keep practicing."
+        : "Needs improvement. Keep trying!";
+
+
+    const timeInfo = totalTime >= 1 
+        ? `⏱ Total time: ${totalTimeFormatted}. Per question: ${avgTimeFormatted}`
+        : `⏱ Average per question: ${avgTimeFormatted}`
+
+    // Reuse the option buttons
+    const optionButtons = quizOptions.querySelectorAll("button");
+
+    optionButtons[0].textContent = `✅ Correct: ${correctCount}`;
+    optionButtons[1].textContent = `❌ Wrong: ${wrongCount}`;
+    optionButtons[2].textContent = timeInfo;
+    optionButtons[3].textContent = performance;
+
+    // Disable buttons so user can't click them
+    optionButtons.forEach(btn => btn.disabled = true);
+
+    // Hide Next button and show Exit button
+    quizNext.disabled = true;
+    quizNext.style.display = "none";
+
+    quizExit.disabled = false;
+    quizExit.style.display = "block";    
   }
 
   // Create 4 options (1 correct + 3 random)
@@ -471,6 +606,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 800);
   }
 
+  function goToNextQuizQuestion() {
+      if (quizProcessing) return; // ignore if already processing
+      quizProcessing = true;
+
+      setTimeout(() => {
+          quizIndex++;
+          if (quizIndex >= quizData.length) {
+              showQuizResult();
+              return;
+          }
+          showQuizQuestion();
+          quizProcessing = false; // allow next action
+      }, 1000);
+  }
+
   // Next question
   quizNext.addEventListener("click", () => {
     const current = quizData[quizIndex];
@@ -483,15 +633,7 @@ document.addEventListener('DOMContentLoaded', () => {
         current.userAnswer = null;
         current.timeTaken = Date.now() - current.startTime;
 
-        // Wait a short moment before moving to next question
-        setTimeout(() => {
-            quizIndex++;
-            if (quizIndex >= quizData.length) {
-                showQuizResults();
-                return;
-            }
-            showQuizQuestion();
-        }, 1000);
+        goToNextQuizQuestion();
         return;
     }
 
@@ -499,49 +641,7 @@ document.addEventListener('DOMContentLoaded', () => {
     quizIndex++;
 
     if (quizIndex >= quizData.length) {
-        quizQuestion.textContent = "Well done! You completed the quiz!";
-
-        const totalTime = Date.now() - quizStartTime; // total quiz duration
-        const totalTimeFormatted = formatTime(totalTime);
-
-        const correctCount = quizData.filter(q => q.isCorrect).length;
-        const wrongCount = quizData.length - correctCount;
-
-        // Average time in seconds
-        const avgTimeMs = quizData.reduce((sum, q) => sum + (q.timeTaken || 0), 0) / quizData.length;
-        const avgTimeFormatted = formatTime(avgTimeMs);
-
-
-        // Define feedback messages
-        const performance = correctCount / quizData.length >= 0.8
-            ? "Excellent! You're brilliant!"
-            : correctCount / quizData.length >= 0.5
-            ? "Good! Keep practicing."
-            : "Needs improvement. Keep trying!";
-
-
-        const timeInfo = totalTime >= 1 
-            ? `⏱ Total time: ${totalTimeFormatted}. Per question: ${avgTimeFormatted}`
-            : `⏱ Average per question: ${avgTimeFormatted}`
-
-        // Reuse the option buttons
-        const optionButtons = quizOptions.querySelectorAll("button");
-
-        optionButtons[0].textContent = `✅ Correct: ${correctCount}`;
-        optionButtons[1].textContent = `❌ Wrong: ${wrongCount}`;
-        optionButtons[2].textContent = timeInfo;
-        optionButtons[3].textContent = performance;
-
-        // Disable buttons so user can't click them
-        optionButtons.forEach(btn => btn.disabled = true);
-
-        // Hide Next button and show Exit button
-        quizNext.disabled = true;
-        quizNext.style.display = "none";
-
-        quizExit.disabled = false;
-        quizExit.style.display = "block";
-
+        showQuizResult();
         return;
     }
 
@@ -563,10 +663,13 @@ document.addEventListener('DOMContentLoaded', () => {
   function startQuizMode(){
     quizMode = true;
     loadQuizData();
+
     quizIndex = 0;
     cardContainer.style.display = "none";
     flashCardButtons.style.display = "none";
-    quizButton.style.display = "none";
+    startQuizBtn.style.display = "none";
+    repeatBatchBtn.style.display = "none";
+    nextBatchBtn.style.display = "none";
     quizContainer.style.display = "block";
     showQuizQuestion();
 
