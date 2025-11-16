@@ -681,11 +681,17 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function exitQuizMode(){
+    currentBatch = 0;
+    batchIndex = 0;
+
     quizMode = false;
     quizContainer.style.display = "none";
     cardContainer.style.display = "block";
     flashCardButtons.style.display = "flex";
+
     resetDeckOriginal(); // rest the flash cards;
+    loadBatch(0); // load the first batch
+    showCard(); // show the cards
   }
 
 });
