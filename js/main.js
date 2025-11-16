@@ -190,10 +190,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   mainCategory.addEventListener('change', () => {
+    resetBatchAndQuizMode();
     populateSubcategories(mainCategory.value);
   });
 
   subCategory.addEventListener('change', () => {
+    resetBatchAndQuizMode();
     if (subCategory.value) loadCards(subCategory.value);
   });
 
@@ -257,18 +259,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function resetDeckOriginal() {
     indexOrder = cards.map((_, i) => i);
-    currentIndex = 0;
-    flipped = false;
-    finished = false;
+    restFlashCards();
     showCard();
   }
 
   function resetDeckShuffled() {
     indexOrder = cards.map((_, i) => i);
     shuffleArray(indexOrder);
-    currentIndex = 0;
-    flipped = false;
-    finished = false
+    restFlashCards();
     showCard();
     changeflashcardcolour()
   }
@@ -681,17 +679,28 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function exitQuizMode(){
-    currentBatch = 0;
-    batchIndex = 0;
-
-    quizMode = false;
     quizContainer.style.display = "none";
     cardContainer.style.display = "block";
     flashCardButtons.style.display = "flex";
 
+    resetBatchAndQuizMode(); // rest batch and quiz mode
     resetDeckOriginal(); // rest the flash cards;
     loadBatch(0); // load the first batch
     showCard(); // show the cards
+  }
+
+  function resetBatchAndQuizMode(){
+    currentBatch = 0;
+    batchIndex = 0;
+
+    quizMode = false;
+    quizIndex = 0;
+  }
+
+  function restFlashCards(){
+    currentIndex = 0;
+    flipped = false;
+    finished = false;
   }
 
 });
