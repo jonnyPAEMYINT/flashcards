@@ -37,6 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let batchSize = 15;         // Number of cards per batch
   let totalBatches = 0;
   let currentBatch = 0;
+  let previousCards = [];
+  let reviewHistory = new Map(); // card -> last batch index it was used for
 
   const flashcardColors = [
                             '#d4edc4', // green
@@ -210,17 +212,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       const res = await fetch(file);
-      const loadedCards = await res.json();
+      allCards = await res.json();
 
-      allCards = loadedCards; // store full deck
       batchIndex = 0; // reset batch index
+      previousCards = []; // rest previous card
 
-      if (allCards.length > batchSize){
-        totalBatches = Math.ceil(allCards.length / batchSize);
-      }else{
-        totalBatches = allCards.length;
-      }
-
+      totalBatches = Math.ceil(allCards.length / batchSize);
+      
       loadBatch(batchIndex); // load first batch
 
     } catch (err) {
@@ -233,11 +231,39 @@ document.addEventListener('DOMContentLoaded', () => {
   function loadBatch(index) {
     if (!allCards.length) return;
 
+    // because the additional 5 will be review decks from previous batches
+    const newCount = index === 0 ? 15 : 10;
     const start = index * batchSize;
-    const end = Math.min(start + batchSize, allCards.length);
+    const end = Math.min(start + newCount, allCards.length);
+
+    // fresh batch (no review)
+    const newCards = allCards.slice(start, end);
+    newCards.forEach(card => card.isOld = false);
+
+    let reviewCards = [];
+
+    if (index > 0){
+      const usedSet = new Set(newCards);
+      const eligibleReview = previousCards.filter(card => !usedSet.has(card));
+
+      eligibleReview.sort((a, b) => {
+          const lastA = reviewHistory.get(a) ?? -1;
+          const lastB = reviewHistory.get(b) ?? -1;
+          return lastA - lastB;
+      });
+
+      reviewCards = eligibleReview.slice(0, Math.min(5, eligibleReview.length));
+      reviewCards.forEach(card => {
+        card.isOld = true;
+        reviewHistory.set(card, index);
+      });
+    }
 
     // Slice the batch from the full deck
-    cards = allCards.slice(start, end);
+    cards = [...newCards, ...reviewCards].slice(0, 15);
+
+    //store all cards seen so far (previous ones)
+    previousCards.push(...newCards);
 
     // Reset index order and counters for the batch
     resetDeckOriginal();
@@ -248,6 +274,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Make sure flashcard buttons are visible
     flashCardButtons.style.display = "flex";
+
+    //console.log("Batch:", index, 
+    //            "New:", newCards.length, 
+    //            "Review:", reviewCards.length, 
+    //            "Final:", cards.length);
+  }
+
+  function getUniqueReviewCards(previousCards, excludeCards, count = 5) {
+    // Filter out cards already in the current batch
+    const pool = previousCards.filter(card => !excludeCards.includes(card));
+
+    // Use a Set to make sure we only get unique cards
+    const uniquePool = Array.from(new Set(pool));
+
+    // Shuffle the unique pool
+    shuffleArray(uniquePool);
+
+    // Return only the requested number of review cards
+    return uniquePool.slice(0, Math.min(count, uniquePool.length));
+}
+
+  function returnShuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+
+    return array;
   }
 
   function shuffleArray(array) {
@@ -307,12 +361,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const card = cards[indexOrder[currentIndex]];
 
-    // In reverse mode, show back first
-    if (reverseMode) {
-      flashcard.textContent = flipped ? card.front : card.back;
-    } else {
-      flashcard.textContent = flipped ? card.back : card.front;
+    let content = reverseMode
+        ? (flipped ? card.front : card.back)
+        : (flipped ? card.back : card.front);
+
+    if (card.isOld) {
+      content = "(Review) \n\n" + content;
+      flashcard.classList.add('old-card');
+    }else{
+      flashcard.classList.remove('old-card');
     }
+
+    flashcard.textContent = content;
 
     // Handle flip display
     if (flipped) {
@@ -326,9 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
     slider.max = cards.length - 1;
     slider.value = currentIndex;
 
-    if (finished == false) {
-      startQuizBtn.style.display = "none";
-    }
+    if (!finished) startQuizBtn.style.display = "none";
 
   }
 
@@ -368,7 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const cardsSeen = (currentBatch + 1) * batchSize;
 
       if(cardsSeen < totalCards) {
-        flashcard.textContent = `Great! You've completed batch ${currentBatch + 1}.\n\nClick "Next" batch to continue or "Repeat" to practise more.`;
+        flashcard.textContent = `Great! Batch ${currentBatch + 1} completed.\n\nClick "Next" to continue or "Repeat" to practise more.\n\nSome old cards will reappear to help you remember.`;
         nextBatchBtn.style.display = "block";
         repeatBatchBtn.style.display = "block";
         flashCardButtons.style.display = "none";
