@@ -127,6 +127,17 @@ select:hover {
   transform: rotateY(180deg) scaleX(-1);;
 }
 
+.old-card {
+  border: 3px dashed #FF9900;   /* makes it obvious */
+  background-color: #FFF8E1;
+  animation: pulse 0.5s ease;   /* subtle attention */
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
 #card-count {
   text-align: center;
   font-size: 1rem;
