@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentBatch = 0;
   let previousCards = [];
   let reviewHistory = new Map(); // card -> last batch index it was used for
+  let lastLoadedNewCards = [];
 
   const flashcardColors = [
                             '#d4edc4', // green
@@ -192,12 +193,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   mainCategory.addEventListener('change', () => {
-    resetBatchAndQuizMode();
     populateSubcategories(mainCategory.value);
   });
 
   subCategory.addEventListener('change', () => {
-    resetBatchAndQuizMode();
     if (subCategory.value) loadCards(subCategory.value);
   });
 
@@ -228,58 +227,64 @@ document.addEventListener('DOMContentLoaded', () => {
     if (quizMode == true) startQuizMode();
   }
 
-  function loadBatch(index) {
+  function loadBatch(index, isRepeat = false) {
     if (!allCards.length) return;
 
-    // because the additional 5 will be review decks from previous batches
-    const newCount = index === 0 ? 15 : 10;
-    const start = index * batchSize;
-    const end = Math.min(start + newCount, allCards.length);
+    const freshCount = index === 0 ? 15 : 10;
 
-    // fresh batch (no review)
-    const newCards = allCards.slice(start, end);
-    newCards.forEach(card => card.isOld = false);
+    let newCards;
+
+    if (isRepeat && lastLoadedNewCards.length && index === currentBatch) {
+      // Reload previous fresh cards
+      newCards = lastLoadedNewCards.slice();
+      newCards.forEach(card => card.isOld = false);
+    } else {
+      const start = previousCards.length;
+      const end = Math.min(start + freshCount, allCards.length);
+      newCards = allCards.slice(start, end);
+      newCards.forEach(card => card.isOld = false);
+
+      // Store for repeat button
+      lastLoadedNewCards = newCards.slice();
+    }
 
     let reviewCards = [];
 
-    if (index > 0){
+    if (index > 0) {
       const usedSet = new Set(newCards);
-      const eligibleReview = previousCards.filter(card => !usedSet.has(card));
+      const eligibleReview = previousCards.filter(c => !usedSet.has(c));
 
+      // Sort by least recently reviewed
       eligibleReview.sort((a, b) => {
-          const lastA = reviewHistory.get(a) ?? -1;
-          const lastB = reviewHistory.get(b) ?? -1;
-          return lastA - lastB;
+        const lastA = reviewHistory.get(a) ?? -1;
+        const lastB = reviewHistory.get(b) ?? -1;
+        return lastA - lastB;
       });
 
-      reviewCards = eligibleReview.slice(0, Math.min(5, eligibleReview.length));
-      reviewCards.forEach(card => {
-        card.isOld = true;
-        reviewHistory.set(card, index);
-      });
+      // Fill the batch to make batchSize
+      const needed = batchSize - newCards.length;
+      reviewCards = eligibleReview.slice(0, needed);
+      reviewCards.forEach(card => reviewHistory.set(card, index));
+      reviewCards.forEach(card => card.isOld = true);
     }
 
-    // Slice the batch from the full deck
-    cards = [...newCards, ...reviewCards].slice(0, 15);
+    // Final batch to display
+    cards = [...newCards, ...reviewCards];
 
-    //store all cards seen so far (previous ones)
-    previousCards.push(...newCards);
+    // Only count fresh cards for previousCards
+    if (!isRepeat) previousCards.push(...newCards);
 
-    // Reset index order and counters for the batch
+    // Reset deck/UI
     resetDeckOriginal();
-
-    // Hide next batch button until this batch is completed
     nextBatchBtn.style.display = "none";
     repeatBatchBtn.style.display = "none";
-
-    // Make sure flashcard buttons are visible
     flashCardButtons.style.display = "flex";
 
     //console.log("Batch:", index, 
     //            "New:", newCards.length, 
     //            "Review:", reviewCards.length, 
     //            "Final:", cards.length);
-  }
+}
 
   function getUniqueReviewCards(previousCards, excludeCards, count = 5) {
     // Filter out cards already in the current batch
@@ -332,11 +337,11 @@ document.addEventListener('DOMContentLoaded', () => {
       repeatBatchBtn.style.display = "none";
   });
 
-  repeatBatchBtn.addEventListener("click", () =>{
-    loadBatch(currentBatch) // reload same batch
-    repeatBatchBtn.style.display = "none";
+  repeatBatchBtn.addEventListener("click", () => {
+    loadBatch(currentBatch, true); // reload same batch
     nextBatchBtn.style.display = "none";
-  })
+    repeatBatchBtn.style.display = "none";
+  });
 
   reverseBtn.addEventListener('click', () => {
     reverseMode = !reverseMode;   // toggle reverse mode
@@ -423,7 +428,9 @@ document.addEventListener('DOMContentLoaded', () => {
       showCard();
 
       const totalCards = allCards.length;
-      const cardsSeen = (currentBatch + 1) * batchSize;
+      const cardsSeen = previousCards.length;
+
+      //console.log("totalCards", totalCards, "cardsSeen", cardsSeen);
 
       if(cardsSeen < totalCards) {
         flashcard.textContent = `Great! Batch ${currentBatch + 1} completed.\n\nClick "Next" to continue or "Repeat" to practise more.\n\nSome old cards will reappear to help you remember.`;
