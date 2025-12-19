@@ -439,10 +439,12 @@ document.addEventListener('DOMContentLoaded', () => {
         flashCardButtons.style.display = "none";
         startQuizBtn.style.display = "none";
 
+        celebrateBatchCompletion();
+
         return;
       }
 
-      let quizInfo = 'Well done! You’ve completed all the flashcards.\n\nClick "Start Quiz" to test how much you’ve remembered.';
+      let quizInfo = 'You’ve completed all the flashcards.\n\nClick "Start Quiz" to test how much you’ve remembered.';
       if (currentBatch >= 0) {
          quizInfo = quizInfo.replace(/\./g,"") + ' or "Repeat" to practise more.';
          repeatBatchBtn.style.display = "block";
@@ -452,10 +454,27 @@ document.addEventListener('DOMContentLoaded', () => {
       flashcard.textContent = quizInfo;
       flashCardButtons.style.display = "none";
       startQuizBtn.style.display = "block";
+
+      celebrateBatchCompletion();
     }
 
     changeflashcardcolour();
   });
+
+  function celebrateBatchCompletion() {
+    // Quick burst of confetti
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 }
+    });
+
+    // Optional: add a small text animation on the flashcard
+    flashcard.textContent += "\n\n🎉 Well done! 🎉";
+    flashcard.style.transition = "transform 0.3s ease";
+    flashcard.style.transform = "scale(1.05)";
+    setTimeout(() => { flashcard.style.transform = "scale(1)"; }, 500);
+  }
 
   preventDoubleClick(prevBtn, () => {
     if (currentIndex > 0) {
