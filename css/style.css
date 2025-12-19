@@ -138,6 +138,16 @@ select:hover {
   50% { transform: scale(1.05); }
 }
 
+.celebrate {
+  animation: pop 0.5s ease forwards;
+}
+
+@keyframes pop {
+  0% { transform: scale(1) }
+  50% { transform: scale(1.05) }
+  100% { transform: scale(1) }
+}
+
 #card-count {
   text-align: center;
   font-size: 1rem;
