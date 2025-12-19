@@ -462,18 +462,17 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   function celebrateBatchCompletion() {
-    // Quick burst of confetti
     confetti({
       particleCount: 100,
       spread: 70,
       origin: { y: 0.6 }
     });
 
-    // Optional: add a small text animation on the flashcard
     flashcard.textContent += "\n\n🎉 Well done! 🎉";
-    flashcard.style.transition = "transform 0.3s ease";
-    flashcard.style.transform = "scale(1.05)";
-    setTimeout(() => { flashcard.style.transform = "scale(1)"; }, 500);
+    flashcard.classList.add("celebrate");
+    setTimeout(() => {
+      flashcard.classList.remove("celebrate");
+    }, 500);
   }
 
   preventDoubleClick(prevBtn, () => {
