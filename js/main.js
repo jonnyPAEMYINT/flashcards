@@ -194,16 +194,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   mainCategory.addEventListener('change', () => {
     populateSubcategories(mainCategory.value);
+    saveState();
   });
 
   subCategory.addEventListener('change', () => {
     if (subCategory.value) loadCards(subCategory.value);
+    saveState();
   });
 
   // Set default main category to "phrases"
-  mainCategory.value = 'phrases';
-  populateSubcategories('phrases');
+  //mainCategory.value = 'phrases';
+  //populateSubcategories('phrases');
 
+  loadSavedState();
 
   // load flasch cards
   async function loadCards(file) {
@@ -320,6 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
     indexOrder = cards.map((_, i) => i);
     restFlashCards();
     showCard();
+    changeFlashcardColour();
   }
 
   function resetDeckShuffled() {
@@ -327,7 +331,7 @@ document.addEventListener('DOMContentLoaded', () => {
     shuffleArray(indexOrder);
     restFlashCards();
     showCard();
-    changeflashcardcolour()
+    changeFlashcardColour();
   }
 
   nextBatchBtn.addEventListener("click", () => {
@@ -335,12 +339,14 @@ document.addEventListener('DOMContentLoaded', () => {
       loadBatch(currentBatch);
       nextBatchBtn.style.display = "none";
       repeatBatchBtn.style.display = "none";
+      saveState();
   });
 
   repeatBatchBtn.addEventListener("click", () => {
     loadBatch(currentBatch, true); // reload same batch
     nextBatchBtn.style.display = "none";
     repeatBatchBtn.style.display = "none";
+    saveState();
   });
 
   reverseBtn.addEventListener('click', () => {
@@ -348,6 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
     flipped = false;              // reset flip state
     finished = false
     showCard();
+    saveState();
 
     // toggle visual style
     if (reverseMode) {
@@ -355,7 +362,6 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       reverseBtn.classList.remove('active-reverse');
     }
-
   });
 
   function showCard() {
@@ -395,17 +401,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   }
 
-  function changeflashcardcolour(){
-    //Pick random color for flashcard
-    const randomColor = flashcardColors[Math.floor(Math.random() * flashcardColors.length)];
-    flashcard.style.border = '3px solid #fff';
-    flashcard.style.background = randomColor;
-  }
-
   slider.addEventListener('input', (e) => {
     currentIndex = parseInt(e.target.value);
     flipped = false;
     showCard();
+    saveState();
   });
 
   preventDoubleClick(flashcard, () => {
@@ -418,9 +418,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   preventDoubleClick(nextBtn, () => {
     if (currentIndex < cards.length - 1) {
-      currentIndex = (currentIndex + 1) % cards.length;
-      flipped = false;
-      showCard();
+        slideCard("next", () => {
+          currentIndex = (currentIndex + 1) % cards.length;
+          flipped = false;
+          showCard();
+          changeFlashcardColour();
+          saveState();
+      });
 
     } else {
       flipped = false;
@@ -430,8 +434,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const totalCards = allCards.length;
       const cardsSeen = previousCards.length;
 
-      //console.log("totalCards", totalCards, "cardsSeen", cardsSeen);
-
       if(cardsSeen < totalCards) {
         flashcard.textContent = `Great! Batch ${currentBatch + 1} completed.\n\nClick "Next" to continue or "Repeat" to practise more.\n\nSome old cards will reappear to help you remember.`;
         nextBatchBtn.style.display = "block";
@@ -440,7 +442,6 @@ document.addEventListener('DOMContentLoaded', () => {
         startQuizBtn.style.display = "none";
 
         celebrateBatchCompletion();
-
         return;
       }
 
@@ -458,7 +459,7 @@ document.addEventListener('DOMContentLoaded', () => {
       celebrateBatchCompletion();
     }
 
-    changeflashcardcolour();
+    saveState();
   });
 
   function celebrateBatchCompletion() {
@@ -469,6 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     flashcard.textContent += "\n\n🎉 Well done! 🎉";
+
     flashcard.classList.add("celebrate");
     setTimeout(() => {
       flashcard.classList.remove("celebrate");
@@ -483,10 +485,17 @@ document.addEventListener('DOMContentLoaded', () => {
       }else{
         currentIndex = (currentIndex - 1 + cards.length) % cards.length;
       }
-      flipped = false;
-      showCard();           
+
+      slideCard("prev", () => {
+        if (currentIndex > 0) {
+          currentIndex--;
+        }
+        flipped = false;
+        showCard();
+        changeFlashcardColour();
+        saveState();
+      });
     } 
-    changeflashcardcolour();
   });
 
   flipBtn.onclick = () => { flipped = !flipped; showCard(); };
@@ -526,6 +535,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     return str;
+  }
+
+  function slideCard(direction, callback) {
+    const className = direction === "next" ? "slide-left" : "slide-right";
+
+    flashcard.classList.add(className);
+
+    setTimeout(() => {
+      flashcard.classList.remove(className);
+      callback();                 // update card data AFTER slide
+    }, 350);
+  }
+
+  function changeFlashcardColour() {
+    const color = flashcardColors[Math.floor(Math.random() * flashcardColors.length)];
+    flashcard.style.setProperty("--card-bg", color);
+  }
+
+  function setGhostText(text) {
+    flashcard.setAttribute("data-current", text);
   }
 
   // -----------------------
@@ -784,6 +813,72 @@ document.addEventListener('DOMContentLoaded', () => {
     currentIndex = 0;
     flipped = false;
     finished = false;
+  }
+
+function loadSavedState() {
+  const savedMain = localStorage.getItem("mainCategory");
+  const savedSub = localStorage.getItem("subCategory");
+  const savedIndex = localStorage.getItem("cardIndex");
+  const savedReverse = localStorage.getItem("reverseMode");
+  const savedShuffle = localStorage.getItem("shuffleMode");
+
+  // FIRST SESSION → load defaults
+  if (!savedMain || !datasets[savedMain]) {
+    const defaultMain = Object.keys(datasets)[0];
+    mainCategory.value = defaultMain;
+
+    populateSubcategories(defaultMain);
+    const firstSub = subCategory.options[0]?.value;
+    if (firstSub) loadCards(firstSub);
+
+    resetDeckOriginal();
+    showCard();
+    return;
+  }
+
+  // RESTORE SAVED SESSION
+  mainCategory.value = savedMain;
+  populateSubcategories(savedMain);
+
+  setTimeout(() => {
+    // Load cards for the saved subcategory
+    if (savedSub) {
+      subCategory.value = savedSub;
+      loadCards(savedSub);
+    }
+
+    // Build deck FIRST (shuffle or normal)
+    if (savedShuffle === "true") {
+      resetDeckShuffled();
+      shuffleBtn.classList.add("active-shuffle");
+    } else {
+      resetDeckOriginal();
+      shuffleBtn.classList.remove("active-shuffle");
+    }
+
+    // Now restore index — AFTER deck is created
+    currentIndex = savedIndex ? Number(savedIndex) : 0;
+
+    // Reverse mode
+    if (savedReverse === "true") {
+      reverseMode = true;
+      reverseBtn.classList.add("active-reverse");
+    } else {
+      reverseMode = false;
+      reverseBtn.classList.remove("active-reverse");
+    }
+
+    showCard();
+    }, 150);
+  }
+
+  // Save session
+  function saveState() {
+    localStorage.setItem("mainCategory", mainCategory.value);
+    localStorage.setItem("subCategory", subCategory.value);
+    localStorage.setItem("cardIndex", currentIndex);
+    localStorage.setItem("reverseMode", reverseMode);
+    localStorage.setItem("shuffleMode", indexOrder.length > 1 ? "true" : "false");
   }
 
 });
