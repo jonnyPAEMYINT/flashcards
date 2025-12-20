@@ -129,7 +129,6 @@ select:hover {
 
 .old-card {
   background-color: var(--card-bg);
-  animation: pulse 0.5s ease;   /* subtle attention */
 }
 
 @keyframes pulse {
