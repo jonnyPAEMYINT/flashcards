@@ -42,7 +42,6 @@ document.addEventListener('DOMContentLoaded', () => {
   let lastLoadedNewCards = [];
 
   let germanVoice = null;
-  let hintShown = false;
 
   const flashcardColors = [
                             '#d4edc4', // green
@@ -439,14 +438,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!finished) startQuizBtn.style.display = "none";
 
     // Visual hint (only on first card, front side)
-    if (!finished && !flipped && !finished) {
+    if (!finished && !flipped && cards.length) {
       flashcard.setAttribute("data-hint", "Tap to flip • Hold to hear");
-      hintShown = true;
-
-      // Auto-remove after a few seconds
-      setTimeout(() => {
-        flashcard.removeAttribute("data-hint");
-      }, 3000);
+    } else {
+      flashcard.removeAttribute("data-hint");
     }
 
   }
@@ -460,45 +455,56 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   // -----------------------
-  // LONG PRESS TO SPEAK
+  // LONG PRESS TO SPEAK + TAP TO FLIP
   // -----------------------
+  const LONG_PRESS_THRESHOLD = 300; // ms
+  let pressStartTime = 0;
+  //let speaking = false;
 
-  const LONG_PRESS_TIME = 450; // ms
-  let pressTimer = null;
-  let longPressTriggered = false;
+  flashcard.style.touchAction = "manipulation";
+  flashcard.style.userSelect = "none";
 
   flashcard.addEventListener("pointerdown", () => {
     if (finished) return;
 
-    longPressTriggered = false;
+    pressStartTime = Date.now();
 
-    pressTimer = setTimeout(() => {
-      longPressTriggered = true;
+    const card = cards[indexOrder[currentIndex]];
+    const textToSpeak = reverseMode
+      ? stripAfterDashOrParen(card.back)
+      : stripAfterDashOrParen(card.front);
 
-      const card = cards[indexOrder[currentIndex]];
-      const textToSpeak = reverseMode
-        ? stripAfterDashOrParen(card.back)
-        : stripAfterDashOrParen(card.front);
-
-      // Optional subtle haptic feedback
-      if (navigator.vibrate) navigator.vibrate(15);
-
-      speakGerman(textToSpeak);
-    }, LONG_PRESS_TIME);
+    // Start speaking immediately
+    speechSynthesis.getVoices(); // iOS fix
+    speakGerman(textToSpeak);
+    //speaking = true;
   });
 
   flashcard.addEventListener("pointerup", () => {
-    clearTimeout(pressTimer);
+    if (finished) return;
+
+    const pressDuration = Date.now() - pressStartTime;
+
+    // Cancel speech
+    /**
+    if (speaking) {
+      speechSynthesis.cancel();
+      speaking = false;
+    }**/
 
     // Short tap → flip
-    if (!longPressTriggered && !finished) {
+    if (pressDuration < LONG_PRESS_THRESHOLD) {
       flipped = !flipped;
       showCard();
     }
   });
 
   flashcard.addEventListener("pointerleave", () => {
-    clearTimeout(pressTimer);
+    // cancel if user drags finger out
+    if (speaking) {
+      speechSynthesis.cancel();
+      speaking = false;
+    }
   });
 
   preventDoubleClick(nextBtn, () => {
@@ -640,10 +646,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function changeFlashcardColour() {
     const color = flashcardColors[Math.floor(Math.random() * flashcardColors.length)];
     flashcard.style.setProperty("--card-bg", color);
-  }
-
-  function setGhostText(text) {
-    flashcard.setAttribute("data-current", text);
   }
 
   // -----------------------
