@@ -90,6 +90,35 @@ select:hover {
   pointer-events: none;
 }
 
+#tts-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  width: 42px;
+  height: 42px;
+  background: transparent;
+  box-shadow: unset !important;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  opacity: 1;
+}
+
+#tts-btn.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(20px); /* slides out to the right */
+}
+
+#tts-btn:active {
+  transform: scale(0.95);
+}
+
+#tts-btn.speaking {
+  background: #c8e6c9;
+}
+
 .card-container {
   width: 90%;
   max-width: 400px;
