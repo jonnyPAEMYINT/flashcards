@@ -41,6 +41,9 @@ document.addEventListener('DOMContentLoaded', () => {
   let reviewHistory = new Map(); // card -> last batch index it was used for
   let lastLoadedNewCards = [];
 
+  let germanVoice = null;
+  let hintShown = false;
+
   const flashcardColors = [
                             '#d4edc4', // green
                             '#fff4b3', // yellow
@@ -138,6 +141,42 @@ document.addEventListener('DOMContentLoaded', () => {
       ]
     }
   };
+
+
+  // -----------------------
+  // TEXT TO SPEECH (GERMAN)
+  // -----------------------
+
+  function loadGermanVoice() {
+    const voices = speechSynthesis.getVoices();
+
+    germanVoice =
+      voices.find(v => v.lang === "de-DE" && v.name.toLowerCase().includes("google")) ||
+      voices.find(v => v.lang === "de-DE") ||
+      voices.find(v => v.lang.startsWith("de")) ||
+      null;
+  }
+
+  // Voices may load async
+  speechSynthesis.onvoiceschanged = loadGermanVoice;
+  loadGermanVoice();
+
+  function speakGerman(text) {
+    if (!text) return;
+
+    speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "de-DE";
+    utterance.rate = 0.9;
+
+    if (germanVoice) {
+      utterance.voice = germanVoice;
+    }
+
+    speechSynthesis.speak(utterance);
+  }
+
   
   // Populate subcategory based on main category with grouped headers
   function populateSubcategories(category) {
@@ -399,6 +438,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!finished) startQuizBtn.style.display = "none";
 
+    // Visual hint (only on first card, front side)
+    if (!finished && !flipped && !finished) {
+      flashcard.setAttribute("data-hint", "Tap to flip • Hold to hear");
+      hintShown = true;
+
+      // Auto-remove after a few seconds
+      setTimeout(() => {
+        flashcard.removeAttribute("data-hint");
+      }, 3000);
+    }
+
   }
 
   slider.addEventListener('input', (e) => {
@@ -408,12 +458,47 @@ document.addEventListener('DOMContentLoaded', () => {
     saveState();
   });
 
-  preventDoubleClick(flashcard, () => {
-    if(finished) return; // come to the end of the flash card. disable flip function;
 
-    flipped = !flipped; 
-    flashcard.classList.toggle('flipped');
-    showCard();
+  // -----------------------
+  // LONG PRESS TO SPEAK
+  // -----------------------
+
+  const LONG_PRESS_TIME = 450; // ms
+  let pressTimer = null;
+  let longPressTriggered = false;
+
+  flashcard.addEventListener("pointerdown", () => {
+    if (finished) return;
+
+    longPressTriggered = false;
+
+    pressTimer = setTimeout(() => {
+      longPressTriggered = true;
+
+      const card = cards[indexOrder[currentIndex]];
+      const textToSpeak = reverseMode
+        ? stripAfterDashOrParen(card.back)
+        : stripAfterDashOrParen(card.front);
+
+      // Optional subtle haptic feedback
+      if (navigator.vibrate) navigator.vibrate(15);
+
+      speakGerman(textToSpeak);
+    }, LONG_PRESS_TIME);
+  });
+
+  flashcard.addEventListener("pointerup", () => {
+    clearTimeout(pressTimer);
+
+    // Short tap → flip
+    if (!longPressTriggered && !finished) {
+      flipped = !flipped;
+      showCard();
+    }
+  });
+
+  flashcard.addEventListener("pointerleave", () => {
+    clearTimeout(pressTimer);
   });
 
   preventDoubleClick(nextBtn, () => {
@@ -498,6 +583,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } 
   });
 
+  
   flipBtn.onclick = () => { flipped = !flipped; showCard(); };
   shuffleBtn.onclick = resetDeckShuffled;
   resetBtn.onclick = resetDeckOriginal;
@@ -523,6 +609,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function stripAfterDashOrParen(str) {
     // Remove anything after "("
     str = str.split("(")[0].trim();
+
+    // Remove plural markers like ", -s", ", -e", ", -en"
+    str = str.replace(/,\s*-\w+/g, "").trim();
 
     // Remove hyphen only when followed by a space "- "
     if (str.includes("- ")) {
