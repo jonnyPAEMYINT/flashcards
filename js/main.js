@@ -795,6 +795,9 @@ document.addEventListener('DOMContentLoaded', () => {
     cardContainer.style.display = "block";
     flashCardButtons.style.display = "flex";
 
+    previousCards = [];
+    lastLoadedNewCards = [];
+
     resetBatchAndQuizMode(); // rest batch and quiz mode
     resetDeckOriginal(); // rest the flash cards;
     loadBatch(0); // load the first batch
