@@ -446,7 +446,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Ensure smooth touch on mobile
-  flashcard.style.touchAction = "manipulation";
+  flashcard.style.touchAction = "auto";
   flashcard.style.userSelect = "none";
 
   flashcard.addEventListener("pointerdown", () => {
