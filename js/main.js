@@ -149,33 +149,52 @@ document.addEventListener('DOMContentLoaded', () => {
   function loadGermanVoice() {
     const voices = speechSynthesis.getVoices();
 
-    germanVoice =
-      voices.find(v => v.lang === "de-DE" && v.name.toLowerCase().includes("google")) ||
-      voices.find(v => v.lang === "de-DE") ||
-      voices.find(v => v.lang.startsWith("de")) ||
-      null;
+    // Detect platform
+    const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent);
+    const isAndroid = /Android/.test(navigator.userAgent);
+
+    // Priority list
+    let preferredVoices = [];
+
+    if (isIOS) {
+      // iOS/Safari → use Apple voices
+      preferredVoices = ["Anna", "Johann", "Melina", "Lukas"];
+    } else if (isAndroid) {
+      // Android Chrome → prefer Google voices if available
+      preferredVoices = ["Google Deutsch", "Deutsch"];
+    } else {
+      // Desktop → Chrome/Firefox
+      preferredVoices = ["Google Deutsch", "Deutsch", "Anna", "Johann"];
+    }
+
+    // Try to find a voice in preferred order
+    for (let name of preferredVoices) {
+      germanVoice = voices.find(v => v.lang.startsWith("de") && v.name.includes(name));
+      if (germanVoice) break;
+    }
+
+    // Fallback: any German voice
+    if (!germanVoice) {
+      germanVoice = voices.find(v => v.lang.startsWith("de"));
+    }
   }
 
-  // Voices may load async
+  // Voices load asynchronously on mobile, so listen to the event
   speechSynthesis.onvoiceschanged = loadGermanVoice;
   loadGermanVoice();
 
   function speakGerman(text) {
-    if (!text) return;
+    if (!text || !germanVoice) return;
 
-    speechSynthesis.cancel();
+    speechSynthesis.cancel(); // cancel any previous utterance
 
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "de-DE";
     utterance.rate = 0.9;
-
-    if (germanVoice) {
-      utterance.voice = germanVoice;
-    }
+    utterance.voice = germanVoice;
 
     speechSynthesis.speak(utterance);
   }
-
   
   // Populate subcategory based on main category with grouped headers
   function populateSubcategories(category) {
@@ -457,9 +476,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // -----------------------
   // LONG PRESS TO SPEAK + TAP TO FLIP
   // -----------------------
-  const LONG_PRESS_THRESHOLD = 300; // ms
+  const LONG_PRESS_THRESHOLD = 450; // ms
   let pressStartTime = 0;
-  //let speaking = false;
+  let longPressTimer = null;
 
   flashcard.style.touchAction = "manipulation";
   flashcard.style.userSelect = "none";
@@ -469,15 +488,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     pressStartTime = Date.now();
 
-    const card = cards[indexOrder[currentIndex]];
-    const textToSpeak = reverseMode
-      ? stripAfterDashOrParen(card.back)
-      : stripAfterDashOrParen(card.front);
+    // Start a timer for long press
+    longPressTimer = setTimeout(() => {
+      const card = cards[indexOrder[currentIndex]];
+      const textToSpeak = reverseMode
+        ? stripAfterDashOrParen(card.back)
+        : stripAfterDashOrParen(card.front);
 
-    // Start speaking immediately
-    speechSynthesis.getVoices(); // iOS fix
-    speakGerman(textToSpeak);
-    //speaking = true;
+      // iOS fix: get voices first
+      speechSynthesis.getVoices();
+      speakGerman(textToSpeak);
+    }, LONG_PRESS_THRESHOLD);
   });
 
   flashcard.addEventListener("pointerup", () => {
@@ -485,14 +506,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const pressDuration = Date.now() - pressStartTime;
 
-    // Cancel speech
-    /**
-    if (speaking) {
-      speechSynthesis.cancel();
-      speaking = false;
-    }**/
+    // Clear the timer so TTS does not trigger on short taps
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
 
-    // Short tap → flip
+    // Short tap → flip card
     if (pressDuration < LONG_PRESS_THRESHOLD) {
       flipped = !flipped;
       showCard();
@@ -500,10 +520,10 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   flashcard.addEventListener("pointerleave", () => {
-    // cancel if user drags finger out
-    if (speaking) {
-      speechSynthesis.cancel();
-      speaking = false;
+    // Cancel long press if finger moves out
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
     }
   });
 
