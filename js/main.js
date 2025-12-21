@@ -15,8 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const nextBatchBtn = document.getElementById("next-batch");  
   const repeatBatchBtn = document.getElementById('repeat-batch');
   const yearSpan = document.getElementById("year");
-  
-
+  const ttsBtn = document.getElementById("tts-btn");
   const today = new Date();
   
   //const basePath = ""
@@ -27,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentIndex = 0;
   let flipped = false;
   let finished = false;
-  let reverseMode = false; // new variable to track reverse mode
+  let reverseMode = false;
   let quizMode = false;
   let currentCardIndex = 1;
 
@@ -51,8 +50,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const LONG_PRESS_THRESHOLD = 450; // ms
   let pressStartTime = 0;
   let longPressTriggered = false;
-  let germanVoice = null;
-  
+  let germanVoice = null;                        
+
   // Define datasets
   const datasets = {
     phrases: [
@@ -433,6 +432,7 @@ document.addEventListener('DOMContentLoaded', () => {
       voices.find(v => v.lang.startsWith("de")) ||
       null;
   }
+
   speechSynthesis.onvoiceschanged = loadGermanVoice;
   loadGermanVoice();
 
@@ -442,6 +442,14 @@ document.addEventListener('DOMContentLoaded', () => {
     utterance.lang = "de-DE";
     utterance.rate = 0.9;
     utterance.voice = germanVoice;
+
+    // Disable button while speaking
+    if (ttsBtn) {
+      utterance.onstart = () => ttsBtn.disabled = true;
+      utterance.onend = () => ttsBtn.disabled = false;
+      utterance.onerror = () => ttsBtn.disabled = false;
+    }
+
     speechSynthesis.speak(utterance);
   }
 
@@ -499,6 +507,19 @@ document.addEventListener('DOMContentLoaded', () => {
       speechSynthesis.cancel();
     }
     longPressTriggered = true;
+  });
+
+  // audio click
+  ttsBtn.addEventListener("click", () => {
+    if (!cards.length) return;
+
+    const card = cards[indexOrder[currentIndex]];
+    const textToSpeak = reverseMode
+      ? stripAfterDashOrParen(card.back)
+      : stripAfterDashOrParen(card.front);
+
+    speechSynthesis.cancel();
+    speakGerman(textToSpeak);
   });
 
   preventDoubleClick(nextBtn, () => {
@@ -630,9 +651,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const className = direction === "next" ? "slide-left" : "slide-right";
 
     flashcard.classList.add(className);
+    ttsBtn.classList.add("hidden");
 
     setTimeout(() => {
       flashcard.classList.remove(className);
+      ttsBtn.classList.remove("hidden");
       callback();                 // update card data AFTER slide
     }, 350);
   }
