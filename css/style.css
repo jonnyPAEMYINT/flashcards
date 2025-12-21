@@ -76,6 +76,20 @@ select:hover {
   background: #fffde7;
 }
 
+#flashcard {
+  position: relative;
+}
+
+#flashcard::after {
+  content: attr(data-hint);
+  position: absolute;
+  bottom: 19px;
+  right: 12px;
+  font-size: 0.95rem;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 .card-container {
   width: 90%;
   max-width: 400px;
