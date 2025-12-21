@@ -406,10 +406,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Visual hint (only on first card, front side)
     if (!finished && !flipped && cards.length) {
       flashcard.setAttribute("data-hint", "Tap to flip • Hold to hear");
+      ttsBtn.classList.remove("hidden");
     } else {
       flashcard.removeAttribute("data-hint");
+      ttsBtn.classList.add("hidden");
     }
-
+    
   }
 
   slider.addEventListener('input', (e) => {
