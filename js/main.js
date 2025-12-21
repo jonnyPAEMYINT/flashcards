@@ -41,8 +41,6 @@ document.addEventListener('DOMContentLoaded', () => {
   let reviewHistory = new Map(); // card -> last batch index it was used for
   let lastLoadedNewCards = [];
 
-  let germanVoice = null;
-
   const flashcardColors = [
                             '#d4edc4', // green
                             '#fff4b3', // yellow
@@ -50,6 +48,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             '#cbe7ff'  // blue
                           ];
 
+  const LONG_PRESS_THRESHOLD = 450; // ms
+  let pressStartTime = 0;
+  let longPressTriggered = false;
+  let germanVoice = null;
+  
   // Define datasets
   const datasets = {
     phrases: [
@@ -141,62 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-
-  // -----------------------
-  // TEXT TO SPEECH (GERMAN)
-  // -----------------------
-
-  function loadGermanVoice() {
-    const voices = speechSynthesis.getVoices();
-
-    // Detect platform
-    const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent);
-    const isAndroid = /Android/.test(navigator.userAgent);
-
-    // Priority list
-    let preferredVoices = [];
-
-    if (isIOS) {
-      // iOS/Safari → use Apple voices
-      preferredVoices = ["Anna", "Johann", "Melina", "Lukas"];
-    } else if (isAndroid) {
-      // Android Chrome → prefer Google voices if available
-      preferredVoices = ["Google Deutsch", "Deutsch"];
-    } else {
-      // Desktop → Chrome/Firefox
-      preferredVoices = ["Google Deutsch", "Deutsch", "Anna", "Johann"];
-    }
-
-    // Try to find a voice in preferred order
-    for (let name of preferredVoices) {
-      germanVoice = voices.find(v => v.lang.startsWith("de") && v.name.includes(name));
-      if (germanVoice) break;
-    }
-
-    // Fallback: any German voice
-    if (!germanVoice) {
-      germanVoice = voices.find(v => v.lang.startsWith("de"));
-    }
-  }
-
-  // Voices load asynchronously on mobile, so listen to the event
-  speechSynthesis.onvoiceschanged = loadGermanVoice;
-  loadGermanVoice();
-
-  function speakGerman(text) {
-    if (!text || !germanVoice) return;
-
-    speechSynthesis.cancel(); // cancel any previous utterance
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "de-DE";
-    utterance.rate = 0.9;
-    utterance.voice = germanVoice;
-
-    speechSynthesis.speak(utterance);
-  }
-
-  
   // Populate subcategory based on main category with grouped headers
   function populateSubcategories(category) {
     subCategory.innerHTML = '';
@@ -459,7 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Visual hint (only on first card, front side)
     if (!finished && !flipped && cards.length) {
-      flashcard.setAttribute("data-hint", "Tap to flip • Press long to hear");
+      flashcard.setAttribute("data-hint", "Tap to flip • Hold to hear");
     } else {
       flashcard.removeAttribute("data-hint");
     }
@@ -477,41 +424,81 @@ document.addEventListener('DOMContentLoaded', () => {
   // -----------------------
   // LONG PRESS TO SPEAK + TAP TO FLIP
   // -----------------------
-  const LONG_PRESS_THRESHOLD = 450; // ms
-  let pressStartTime = 0;
+  // Preload voices to make sure iOS has them ready
+  function loadGermanVoice() {
+    const voices = speechSynthesis.getVoices();
+    germanVoice =
+      voices.find(v => v.lang === "de-DE" && v.name.toLowerCase().includes("google")) ||
+      voices.find(v => v.lang === "de-DE") ||
+      voices.find(v => v.lang.startsWith("de")) ||
+      null;
+  }
+  speechSynthesis.onvoiceschanged = loadGermanVoice;
+  loadGermanVoice();
 
+  function speakGerman(text) {
+    if (!text || !germanVoice) return;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "de-DE";
+    utterance.rate = 0.9;
+    utterance.voice = germanVoice;
+    speechSynthesis.speak(utterance);
+  }
+
+  // Ensure smooth touch on mobile
   flashcard.style.touchAction = "manipulation";
   flashcard.style.userSelect = "none";
 
   flashcard.addEventListener("pointerdown", () => {
     if (finished) return;
+
     pressStartTime = Date.now();
+    longPressTriggered = false;
+
+    // Use requestAnimationFrame to ensure iOS treats it as direct user gesture
+    requestAnimationFrame(() => {
+      const checkLongPress = () => {
+        const card = cards[indexOrder[currentIndex]];
+        const textToSpeak = reverseMode
+          ? stripAfterDashOrParen(card.back)
+          : stripAfterDashOrParen(card.front);
+
+        const duration = Date.now() - pressStartTime;
+
+        if (duration >= LONG_PRESS_THRESHOLD && !longPressTriggered) {
+          longPressTriggered = true;
+          speechSynthesis.cancel(); // cancel any previous speech
+          speakGerman(textToSpeak);
+        }
+
+        // Continue checking until pointerup
+        if (!longPressTriggered) requestAnimationFrame(checkLongPress);
+      };
+      requestAnimationFrame(checkLongPress);
+    });
   });
 
   flashcard.addEventListener("pointerup", () => {
     if (finished) return;
 
     const pressDuration = Date.now() - pressStartTime;
-    const card = cards[indexOrder[currentIndex]];
-    const textToSpeak = reverseMode
-      ? stripAfterDashOrParen(card.back)
-      : stripAfterDashOrParen(card.front);
 
+    // Short tap → flip card
     if (pressDuration < LONG_PRESS_THRESHOLD) {
-      // Short tap → flip
       flipped = !flipped;
       showCard();
-    } else {
-      // Long press → speak
-      speechSynthesis.getVoices(); // iOS fix
-      speakGerman(textToSpeak);
     }
+
+    // Stop any ongoing long press check
+    longPressTriggered = true;
   });
 
   flashcard.addEventListener("pointerleave", () => {
+    // cancel speech if finger moves out
     if (speechSynthesis.speaking) {
       speechSynthesis.cancel();
     }
+    longPressTriggered = true;
   });
 
   preventDoubleClick(nextBtn, () => {
