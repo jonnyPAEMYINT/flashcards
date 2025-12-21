@@ -195,6 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     speechSynthesis.speak(utterance);
   }
+
   
   // Populate subcategory based on main category with grouped headers
   function populateSubcategories(category) {
@@ -458,7 +459,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Visual hint (only on first card, front side)
     if (!finished && !flipped && cards.length) {
-      flashcard.setAttribute("data-hint", "Tap to flip • Hold to hear");
+      flashcard.setAttribute("data-hint", "Tap to flip • Press long to hear");
     } else {
       flashcard.removeAttribute("data-hint");
     }
@@ -478,52 +479,38 @@ document.addEventListener('DOMContentLoaded', () => {
   // -----------------------
   const LONG_PRESS_THRESHOLD = 450; // ms
   let pressStartTime = 0;
-  let longPressTimer = null;
 
   flashcard.style.touchAction = "manipulation";
   flashcard.style.userSelect = "none";
 
   flashcard.addEventListener("pointerdown", () => {
     if (finished) return;
-
     pressStartTime = Date.now();
-
-    // Start a timer for long press
-    longPressTimer = setTimeout(() => {
-      const card = cards[indexOrder[currentIndex]];
-      const textToSpeak = reverseMode
-        ? stripAfterDashOrParen(card.back)
-        : stripAfterDashOrParen(card.front);
-
-      // iOS fix: get voices first
-      speechSynthesis.getVoices();
-      speakGerman(textToSpeak);
-    }, LONG_PRESS_THRESHOLD);
   });
 
   flashcard.addEventListener("pointerup", () => {
     if (finished) return;
 
     const pressDuration = Date.now() - pressStartTime;
+    const card = cards[indexOrder[currentIndex]];
+    const textToSpeak = reverseMode
+      ? stripAfterDashOrParen(card.back)
+      : stripAfterDashOrParen(card.front);
 
-    // Clear the timer so TTS does not trigger on short taps
-    if (longPressTimer) {
-      clearTimeout(longPressTimer);
-      longPressTimer = null;
-    }
-
-    // Short tap → flip card
     if (pressDuration < LONG_PRESS_THRESHOLD) {
+      // Short tap → flip
       flipped = !flipped;
       showCard();
+    } else {
+      // Long press → speak
+      speechSynthesis.getVoices(); // iOS fix
+      speakGerman(textToSpeak);
     }
   });
 
   flashcard.addEventListener("pointerleave", () => {
-    // Cancel long press if finger moves out
-    if (longPressTimer) {
-      clearTimeout(longPressTimer);
-      longPressTimer = null;
+    if (speechSynthesis.speaking) {
+      speechSynthesis.cancel();
     }
   });
 
