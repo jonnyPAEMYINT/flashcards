@@ -587,25 +587,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
   preventDoubleClick(prevBtn, () => {
     if (currentIndex > 0) {
-      if(finished == true){
-          currentIndex = cards.length - 1; // last card
-          finished = false;
-      }else{
-        currentIndex = (currentIndex - 1 + cards.length) % cards.length;
-      }
 
       slideCard("prev", () => {
-        if (currentIndex > 0) {
-          currentIndex--;
+        if (finished) {
+          currentIndex = cards.length - 1;
+          finished = false;
+        } else {
+          currentIndex = (currentIndex - 1 + cards.length) % cards.length;
         }
+
         flipped = false;
         showCard();
         changeFlashcardColour();
         saveState();
       });
-    } 
-  });
 
+    }
+  });
   
   flipBtn.onclick = () => { flipped = !flipped; showCard(); };
   shuffleBtn.onclick = resetDeckShuffled;
