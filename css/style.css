@@ -171,6 +171,7 @@ select:hover {
 }
 
 .old-card {
+  border: 2px solid #ffa500;
   background-color: var(--card-bg);
 }
 
