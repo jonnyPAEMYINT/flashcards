@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentIndex = 0;
   let flipped = false;
   let finished = false;
-  let reverseMode = false;
+  let reverseMode = false; // new variable to track reverse mode
   let quizMode = false;
   let currentCardIndex = 1;
 
@@ -50,7 +50,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const LONG_PRESS_THRESHOLD = 450; // ms
   let pressStartTime = 0;
   let longPressTriggered = false;
-  let germanVoice = null;                        
+  let germanVoice = null;
+
 
   // Define datasets
   const datasets = {
@@ -94,6 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
       { name: "Word families, compound nouns", file: basePath + "data/word_relationships/compounds.json" },
       { name: "Verbs to nouns", file: basePath + "data/word_relationships/verbs_nomen.json" },
       { name: "Prefixed verbs to nouns", file: basePath + "data/word_relationships/prefixed_verbs_nomen.json" },
+      { name: "German collocation", file: basePath + "data/word_relationships/collocation.json" },
       { name: "Fixed expressions, idiomatic phrases", file: basePath + "data/word_relationships/idioms.json" }
     ],
     situations: [
@@ -102,6 +104,9 @@ document.addEventListener('DOMContentLoaded', () => {
       { name: "Office/school terms, phrases", file: basePath + "data/situations/work_school.json" },
       { name: "Sports, hobbies, leisure", file: basePath + "data/situations/hobbies.json" },
       { name: "Health, accidents, urgent situations", file: basePath + "data/situations/emergencies.json" }
+    ],
+    challenge: [
+        { name: "Ausspache Herausfordern", file: basePath + "data/challenge/speaking_30_days.json" }
     ],
     sicher: {
       "A2.1": [
@@ -381,7 +386,6 @@ document.addEventListener('DOMContentLoaded', () => {
         : (flipped ? card.back : card.front);
 
     if (card.isOld) {
-      content = "(Review) \n\n" + content;
       flashcard.classList.add('old-card');
     }else{
       flashcard.classList.remove('old-card');
@@ -411,7 +415,7 @@ document.addEventListener('DOMContentLoaded', () => {
       flashcard.removeAttribute("data-hint");
       ttsBtn.classList.add("hidden");
     }
-    
+
   }
 
   slider.addEventListener('input', (e) => {
@@ -469,7 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
     requestAnimationFrame(() => {
       const checkLongPress = () => {
         const card = cards[indexOrder[currentIndex]];
-        const textToSpeak = reverseMode
+        const textToSpeak = flashcard.classList.contains("flipped")
           ? stripAfterDashOrParen(card.back)
           : stripAfterDashOrParen(card.front);
 
@@ -516,7 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!cards.length) return;
 
     const card = cards[indexOrder[currentIndex]];
-    const textToSpeak = reverseMode
+    const textToSpeak = flashcard.classList.contains("flipped")
       ? stripAfterDashOrParen(card.back)
       : stripAfterDashOrParen(card.front);
 
@@ -604,6 +608,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     }
   });
+
   
   flipBtn.onclick = () => { flipped = !flipped; showCard(); };
   shuffleBtn.onclick = resetDeckShuffled;
