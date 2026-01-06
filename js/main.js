@@ -85,7 +85,17 @@ document.addEventListener('DOMContentLoaded', () => {
       { name: "Reflexive Verbs", file: basePath + "data/verbs/reflexive_verbs.json" },
       { name: "Modal Verbs", file: basePath + "data/verbs/modal_verbs.json" },
       { name: "Separable verbs", file: basePath + "data/verbs/separable_verbs.json" },
-      { name: "Verbs mit preposition", file: basePath + "data/verbs/preposition_verbs.json" }
+      { name: "Verbs mit preposition", file: basePath + "data/verbs/preposition_verbs.json" },
+      { name: "Daily routine verbs", file: basePath + "data/verbs/daily_routine_verbs.json" },
+      { name: "Health and body verbs", file: basePath + "data/verbs/health_body_verbs.json" },
+      { name: "Feelings and states verbs", file: basePath + "data/verbs/feelings_states_verbs.json" },
+      { name: "Movement and travel verbs", file: basePath + "data/verbs/movement_travel_verbs.json" },
+      { name: "Communication and social verbs", file: basePath + "data/verbs/communication_social_verbs.json" },
+      { name: "Work and study verbs", file: basePath + "data/verbs/work_study_verbs.json" },
+      { name: "Shopping and money verbs", file: basePath + "data/verbs/shopping_money_verbs.json" },
+      { name: "Technology and Internet verbs", file: basePath + "data/verbs/technology_internet_verbs.json" },
+      { name: "Problem and solution verbs", file: basePath + "data/verbs/problem_solution_verbs.json" },
+      { name: "Helping and dependence verbs", file: basePath + "data/verbs/helping_dependence_verbs.json" }
     ],
     word_relationships: [
       { name: "Opposite words", file: basePath + "data/word_relationships/antonyms.json" },
