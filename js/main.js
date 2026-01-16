@@ -106,7 +106,8 @@ document.addEventListener('DOMContentLoaded', () => {
       { name: "Verbs to nouns", file: basePath + "data/word_relationships/verbs_nomen.json" },
       { name: "Prefixed verbs to nouns", file: basePath + "data/word_relationships/prefixed_verbs_nomen.json" },
       { name: "German collocation", file: basePath + "data/word_relationships/collocation.json" },
-      { name: "Fixed expressions, idiomatic phrases", file: basePath + "data/word_relationships/idioms.json" }
+      { name: "Fixed expressions", file: basePath + "data/word_relationships/fixed_expression.json" },
+      { name: "Idiomatic phrases", file: basePath + "data/word_relationships/idioms.json" }
     ],
     situations: [
       { name: "Booking tickets, directions", file: basePath + "data/situations/travel.json" },
