@@ -411,10 +411,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // TTS
   let germanVoice = null;
+
   function loadGermanVoice() {
     const voices = speechSynthesis.getVoices();
-    germanVoice = voices.find(v => v.lang === "de-DE") || null;
+    germanVoice =
+      voices.find(v => v.lang === "de-DE" && v.name.toLowerCase().includes("google")) ||
+      voices.find(v => v.lang === "de-DE") ||
+      voices.find(v => v.lang.startsWith("de")) ||
+      null;
   }
+  
   speechSynthesis.onvoiceschanged = loadGermanVoice;
   loadGermanVoice();
 
