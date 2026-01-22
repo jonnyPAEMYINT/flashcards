@@ -140,6 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
       this.LEARN_AHEAD_MS = 20 * 60 * 1000; // 20 minutes
       this.LEARNING_REINSERT_GAP = 3; // cards later
       this.MAX_INTERVAL_DAYS = 365; // cap max interval
+      const FIRST_REVIEW_MS = 90 * 60 * 1000; // 1.5 hours first review
 
       this._dueTimer = null;
     }
@@ -160,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
               state: "new",
               interval: 0,
               ease: 2.5,
-              due: Date.now(),
+              due: Date.now() + this.FIRST_REVIEW_MS, // set first review to 1.5h
               reps: 0
             };
       });
@@ -209,8 +210,18 @@ document.addEventListener('DOMContentLoaded', () => {
           .sort((a, b) => a.due - b.due)[0];
 
         if (nextDue) {
-          const ms = nextDue.due - Date.now();
-          flashcard.textContent += `\nNext card in ${Math.ceil(ms/60000)} min`;
+            let ms = nextDue.due - Date.now();
+            const days = Math.floor(ms / 86400000);
+            ms %= 86400000;
+            const hours = Math.floor(ms / 3600000);
+            ms %= 3600000;
+            const minutes = Math.ceil(ms / 60000);
+
+            let nextText = [];
+            if (days) nextText.push(`${days} day${days > 1 ? 's' : ''}`);
+            if (hours) nextText.push(`${hours} hour${hours > 1 ? 's' : ''}`);
+            if (minutes) nextText.push(`${minutes} min${minutes > 1 ? 's' : ''}`);
+            flashcard.textContent += `\nNext card in ${nextText.join(' ')}`;
         }
 
         this.updateStats();
