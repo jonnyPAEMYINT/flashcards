@@ -132,7 +132,16 @@ document.addEventListener('DOMContentLoaded', () => {
       this.cards = [];
       this.reviewQueue = [];
       this.currentDeckFile = null;
-      this.LEARNING_STEPS = [1, 10]; // minutes for first learning steps
+
+      // Adjustable learning steps (in minutes)
+      this.LEARNING_STEPS = [1, 10, 60]; 
+
+      this.NEW_LIMIT = 20;
+      this.LEARN_AHEAD_MS = 20 * 60 * 1000; // 20 minutes
+      this.LEARNING_REINSERT_GAP = 3; // cards later
+      this.MAX_INTERVAL_DAYS = 365; // cap max interval
+
+      this._dueTimer = null;
     }
 
     async loadDeck(file) {
@@ -142,135 +151,141 @@ document.addEventListener('DOMContentLoaded', () => {
 
       this.cards = rawCards.map((card, i) => {
         const id = `${file}::${i}`;
-        return savedState[id] ? { ...card, ...savedState[id], id } : {
-          id,
-          front: card.front,
-          back: card.back,
-          state: "new",       // new | learning | review
-          interval: 0,        // in days
-          ease: 2.5,
-          due: Date.now(),    // timestamp
-          reps: 0
-        };
+        return savedState[id]
+          ? { ...card, ...savedState[id], id }
+          : {
+              id,
+              front: card.front,
+              back: card.back,
+              state: "new",
+              interval: 0,
+              ease: 2.5,
+              due: Date.now(),
+              reps: 0
+            };
       });
 
       this.buildReviewQueue();
       this.updateStats();
+
+      // Reset global currentCard and flipped state
+      currentCard = null;
+      flipped = false;
+
+      this.getNextCard();
+
+      this.startDueWatcher();
     }
 
-    // Build review queue: interleave review → learning → new
     buildReviewQueue() {
       const now = Date.now();
 
-      const review = this.cards.filter(c => c.state === "review" && c.due <= now);
-      const learning = this.cards.filter(c => c.state === "learning");
-      const newCards = this.cards.filter(c => c.state === "new").slice(0, 20);
+      const review = this.cards
+        .filter(c => c.state === "review" && c.due <= now)
+        .sort((a, b) => a.due - b.due);
 
-      const shuffledReview = this.shuffle(review);
-      const shuffledLearning = this.shuffle(learning);
-      const shuffledNew = this.shuffle(newCards);
+      const learning = this.cards
+        .filter(c => c.state === "learning")
+        .sort((a, b) => a.reps - b.reps);
 
-      // Interleave: review → learning → new
-      const queue = [];
-      while (shuffledReview.length || shuffledLearning.length || shuffledNew.length) {
-        if (shuffledReview.length) queue.push(shuffledReview.shift());
-        if (shuffledLearning.length) queue.push(shuffledLearning.shift());
-        if (shuffledNew.length) queue.push(shuffledNew.shift());
-      }
+      const newCards = this.cards
+        .filter(c => c.state === "new")
+        .slice(0, this.NEW_LIMIT);
 
-      this.reviewQueue = queue;
-      this.getNextCard();
-      this.updateStats();
+      this.reviewQueue = [...review, ...learning, ...newCards];
     }
 
-    // Get the next card that is actually due
     getNextCard() {
-      const now = Date.now();
-
-      while (this.reviewQueue.length) {
-        const next = this.reviewQueue.shift();
-        if (next.due <= now) {
-          currentCard = next;
-          showCard();
-          this.updateStats();
-          return;
-        } else {
-          // Not due yet → put at end of queue
-          this.reviewQueue.push(next);
-        }
+      if (!this.reviewQueue.length) {
+        this.buildReviewQueue();
       }
 
-      // No cards are currently due
-      flashcard.textContent = "✅ No cards are due right now. Come back later!";
-      currentCard = null;
+      if (!this.reviewQueue.length) {
+        currentCard = null;
+        flashcard.textContent = "⏳ Session complete. Waiting for next review…";
+        
+        const nextDue = this.cards
+          .filter(c => c.due > Date.now())
+          .sort((a, b) => a.due - b.due)[0];
+
+        if (nextDue) {
+          const ms = nextDue.due - Date.now();
+          flashcard.textContent += `\nNext card in ${Math.ceil(ms/60000)} min`;
+        }
+
+        this.updateStats();
+        this.startDueWatcher();
+        return;
+      }
+
+      currentCard = this.reviewQueue.shift();
+      showCard();
       this.updateStats();
     }
 
-    // Grade the current card
     gradeCard(rating) {
-        if (!currentCard) return;
-        const card = currentCard;
-        const now = Date.now();
+      if (!currentCard) return;
+      const card = currentCard;
+      const now = Date.now();
+      const idx = this.cards.findIndex(c => c.id === card.id);
+      if (idx === -1) return;
 
-        // Find the card in this.cards and update it
-        const idx = this.cards.findIndex(c => c.id === card.id);
-        if (idx === -1) return;
+      switch (rating) {
+        case "again":
+          card.state = "learning";
+          card.interval = 0;
+          card.reps = 0;
+          card.due = now + 60 * 1000;
+          card.ease = Math.max(1.3, card.ease - 0.2);
+          break;
 
-        switch (rating) {
-            case "again":
-                card.state = "learning";
-                card.interval = 0;
-                card.due = now + 60 * 1000; // 1 min
-                card.reps = 0;
-                break;
-            case "hard":
-                card.state = "learning";
-                card.due = now + 10 * 60 * 1000; // 10 min
-                break;
-            case "good":
-                card.reps += 1;
-                if (card.reps === 1) {
-                    card.state = "learning";
-                    card.due = now + this.LEARNING_STEPS[1] * 60 * 1000;
-                } else {
-                    card.state = "review";
-                    card.interval = card.interval ? Math.max(1, Math.round(card.interval * card.ease)) : 1;
-                    card.due = now + card.interval * 86400000;
-                }
-                break;
-            case "easy":
-                card.reps += 1;
-                card.ease += 0.15;
-                card.state = "review";
-                card.interval = card.interval ? card.interval * 2.5 : 4;
-                card.due = now + card.interval * 86400000;
-                break;
-        }
+        case "hard":
+          card.state = "learning";
+          card.due = now + 5 * 60 * 1000;
+          card.ease = Math.max(1.3, card.ease - 0.15);
+          break;
 
-        // Save back to this.cards
-        this.cards[idx] = { ...card };
+        case "good":
+          card.reps += 1;
+          if (card.reps < this.LEARNING_STEPS.length) {
+            card.state = "learning";
+            card.due = now + this.LEARNING_STEPS[card.reps] * 60 * 1000;
+          } else {
+            card.state = "review";
+            card.interval = card.interval
+              ? Math.min(this.MAX_INTERVAL_DAYS, Math.round(card.interval * card.ease))
+              : 1;
+            card.due = now + card.interval * 86400000;
+          }
+          break;
 
-        // Save state
-        this.saveCardState(card);
+        case "easy":
+          card.reps += 1;
+          card.ease += 0.15;
+          card.state = "review";
+          card.interval = card.interval ? Math.min(this.MAX_INTERVAL_DAYS, card.interval * 2.5) : 4;
+          card.due = now + card.interval * 86400000;
+          break;
+      }
 
-        // Update stats *before* next card
-        this.updateStats();
+      // Reinsert learning card dynamically
+      if (card.state === "learning") {
+        const gap = rating === "hard" ? 1 : this.LEARNING_REINSERT_GAP;
+        const pos = Math.min(gap, this.reviewQueue.length);
+        this.reviewQueue.splice(pos, 0, card);
+      }
 
-        // Add back to queue if due
-        if (card.due <= Date.now()) this.reviewQueue.push(card);
-
-        // Next card
-        this.getNextCard();
+      this.cards[idx] = { ...card };
+      this.saveCardState(card);
+      this.updateStats();
+      this.getNextCard();
     }
 
-    // Update stats for progress bar
     updateStats() {
       const total = this.cards.length;
-
       const newCount = this.cards.filter(c => c.state === "new").length;
       const learningCount = this.cards.filter(c => c.state === "learning").length;
-      const reviewCount = this.cards.filter(c => c.state === "review" || 
-                                               (c.state === "learning" && c.reps > 1)).length;
+      const reviewCount = this.cards.filter(c => c.state === "review" || (c.state === "learning" && c.reps > 1)).length;
 
       document.getElementById("new-count").textContent = newCount;
       document.getElementById("learning-count").textContent = learningCount;
@@ -281,7 +296,6 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById("progress-bar").style.width = `${percent}%`;
     }
 
-    // Save card state to localStorage
     saveCardState(card) {
       const deckKey = `srs:${this.currentDeckFile}`;
       const state = JSON.parse(localStorage.getItem(deckKey) || "{}");
@@ -295,15 +309,28 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem(deckKey, JSON.stringify(state));
     }
 
-    // Fisher-Yates shuffle
-    shuffle(array) {
-      for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
+    startDueWatcher() {
+      if (this._dueTimer) clearTimeout(this._dueTimer);
+
+      const now = Date.now();
+      const dueCards = this.cards.filter(c => c.due <= now);
+
+      if (dueCards.length > 0 && !currentCard) {
+        this.buildReviewQueue();
+        this.getNextCard();
       }
-      return array;
+
+      const upcoming = this.cards
+        .filter(c => c.due > now)
+        .sort((a, b) => a.due - b.due);
+
+      if (upcoming.length > 0) {
+        const nextDue = upcoming[0].due - now;
+        this._dueTimer = setTimeout(() => this.startDueWatcher(), nextDue);
+      }
     }
-  }
+
+  } // end of class
 
   const srs = new SRS();
 
@@ -350,7 +377,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   mainCategory.addEventListener('change', () => populateSubcategories(mainCategory.value));
   subCategory.addEventListener('change', () => {
-    if (subCategory.value) srs.loadDeck(subCategory.value);
+  if (subCategory.value) {
+      flipped = false;
+      currentCard = null;
+      srs.loadDeck(subCategory.value);
+    }
   });
 
   // Display current card
