@@ -104,7 +104,7 @@ select:hover {
 .progress-bar {
   width: 0%;
   height: 100%;
-  background: linear-gradient(90deg, #6fa86f, #a8d08d);
+  background: linear-gradient(90deg, #5dade2, #2e86de);
   border-radius: 12px 0 0 12px;
   transition: width 0.3s ease;
 }
@@ -240,9 +240,19 @@ button.active-reverse {
   box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
 
+/* ACTIVE SRS BUTTON (shared for all) */
+.srs-buttons button.active {
+  background: linear-gradient(to bottom, #6a5acd, #483d8b); /* indigo */
+  color: #fff;
+  transform: scale(1.12);
+  box-shadow:
+    0 0 0 3px rgba(106, 90, 205, 0.4),
+    0 6px 14px rgba(0,0,0,0.35);
+}
+
 button:hover {
   transform: scale(1.05);
-  background: linear-gradient(to bottom, #3e8e41, #2f6d31);
+  background: linear-gradient(to bottom, #6a5acd, #483d8b);
 }
 
 .button-group:last-child {
