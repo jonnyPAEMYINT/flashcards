@@ -420,6 +420,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function speak(text) {
     if (!text || !germanVoice) return;
+    text = stripAfterDashOrParen(text);
     const u = new SpeechSynthesisUtterance(text);
     u.lang = "de-DE"; u.voice = germanVoice; u.rate = 0.9;
     speechSynthesis.speak(u);
@@ -456,6 +457,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const text = flipped ? currentCard.back : currentCard.front;
     speak(text);
   });
+
+  function stripAfterDashOrParen(str) {
+    // Remove anything after "("
+    str = str.split("(")[0].trim();
+
+    // Remove plural markers like ", -s", ", -e", ", -en"
+    str = str.replace(/,\s*-\w+/g, "").trim();
+
+    // Remove hyphen only when followed by a space "- "
+    if (str.includes("- ")) {
+        str = str.split("- ")[0].trim();
+    }
+
+    // Remove dot and everything after it
+    if (str.includes(".")) {
+        str = str.split(".")[0].trim();
+    }
+
+    return str;
+  }
 
   // Buttons to grade card (example: you can add UI buttons for these)
   document.getElementById("btnAgain")?.addEventListener("click", () => srs.gradeCard("again"));
