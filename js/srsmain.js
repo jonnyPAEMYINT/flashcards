@@ -133,20 +133,41 @@ document.addEventListener('DOMContentLoaded', () => {
       this.reviewQueue = [];
       this.currentDeckFile = null;
 
-      this.LEARNING_STEPS = [5, 15, 30, 60, 120];
+      // Adjustable learning steps (in minutes)
+      this.LEARNING_STEPS = [1, 10, 60]; 
 
       this.NEW_LIMIT = 20;
-      this.todayKey = `srs:${this.currentDeckFile}:daily`;
-
       this.LEARN_AHEAD_MS = 20 * 60 * 1000; // 20 minutes
       this.LEARNING_REINSERT_GAP = 3; // cards later
       this.MAX_INTERVAL_DAYS = 365; // cap max interval
       this.FIRST_REVIEW_MS = 90 * 60 * 1000; // 1.5 hours first review
+
+      this.DAILY_LIMIT_MS = 20 * 60 * 1000; // 20 minutes
+      this.sessionStart = Date.now();
+      this.sessionEnded = false;  
       this._dueTimer = null;
+
+
+      this.sessionStats = {
+        total: 0,
+        new: 0,
+        learning: 0,
+        review: 0,
+        again: 0,
+        hard: 0,
+        good: 0,
+        easy: 0,
+        startTime: Date.now()
+      };
+
     }
 
     async loadDeck(file) {
+      this.resetSessionStats();
       this.currentDeckFile = file;
+      this.sessionStart = Date.now();
+      this.sessionEnded = false;
+
       const rawCards = await fetch(file).then(r => r.json());
       const savedState = JSON.parse(localStorage.getItem(`srs:${file}`) || "{}");
 
@@ -161,70 +182,84 @@ document.addEventListener('DOMContentLoaded', () => {
               state: "new",
               interval: 0,
               ease: 2.5,
-              due: Date.now() + this.FIRST_REVIEW_MS,
+              due: Date.now() + this.FIRST_REVIEW_MS, // set first review to 1.5h
               reps: 0
             };
       });
 
       this.buildReviewQueue();
+      this.updateStats();
+
+      // Reset global currentCard and flipped state
       currentCard = null;
       flipped = false;
-      this.updateStats();
-      this.getNextCard();
+
+      this.getNextCard("next");
+
       this.startDueWatcher();
     }
 
     buildReviewQueue() {
       const now = Date.now();
 
-      const todayData = JSON.parse(localStorage.getItem(this.todayKey) || "{}");
-      const learntToday = todayData[`${new Date().toDateString()}`] || 0;
-      const availableNew = Math.max(0, this.NEW_LIMIT - learntToday);
-
       const review = this.cards
-        .filter(c => c.state === "review" && c.due <= now)
+        .filter(c => c.state === "review" && c.due <= now + this.LEARN_AHEAD_MS)
         .sort((a, b) => a.due - b.due);
 
       const learning = this.cards
         .filter(c => c.state === "learning")
         .sort((a, b) => a.reps - b.reps);
 
-      const newCards = this.cards
-        .filter(c => c.state === "new")
-        .slice(0, this.NEW_LIMIT);
+      const allowNew = !this.isSessionOver();
+      const newCards = allowNew 
+      ? this.cards.filter(c => c.state === "new").slice(0, this.NEW_LIMIT)
+      : []; 
 
-      this.reviewQueue = [...review, ...learning, ...newCards];
+      const seen = new Set();
+      this.reviewQueue = [...review, ...learning, ...newCards].filter(c => {
+        if (seen.has(c.id)) return false;
+        seen.add(c.id);
+        return true;
+      });
+
     }
 
     getNextCard(direction = "next") {
-      // If queue empty, check for soon-due cards (within 5 min)
+      this.setUIState("card");
+
+      if (this.isSessionOver()) {
+        this.sessionEnded = true;
+        currentCard = null;
+        flashcard.textContent = "⏳ Daily limit reached. Come back tomorrow.";
+        this.updateStats();
+        return;
+      }
+
       if (!this.reviewQueue.length) {
-        const now = Date.now();
-        const soonDue = this.cards.filter(c => c.due <= now + 5 * 60 * 1000);
-        if (soonDue.length) this.reviewQueue.push(...soonDue);
+        this.buildReviewQueue();
       }
 
       if (!this.reviewQueue.length) {
         currentCard = null;
-        flashcard.textContent = "⏳ Session complete. Waiting for next review…";
-
+        this.showSessionSummary();
+        
         const nextDue = this.cards
           .filter(c => c.due > Date.now())
           .sort((a, b) => a.due - b.due)[0];
 
         if (nextDue) {
-          let ms = nextDue.due - Date.now();
-          const days = Math.floor(ms / 86400000);
-          ms %= 86400000;
-          const hours = Math.floor(ms / 3600000);
-          ms %= 3600000;
-          const minutes = Math.ceil(ms / 60000);
+            let ms = nextDue.due - Date.now();
+            const days = Math.floor(ms / 86400000);
+            ms %= 86400000;
+            const hours = Math.floor(ms / 3600000);
+            ms %= 3600000;
+            const minutes = Math.ceil(ms / 60000);
 
-          let nextText = [];
-          if (days) nextText.push(`${days} day${days > 1 ? 's' : ''}`);
-          if (hours) nextText.push(`${hours} hour${hours > 1 ? 's' : ''}`);
-          if (minutes) nextText.push(`${minutes} min${minutes > 1 ? 's' : ''}`);
-          flashcard.textContent += `\nNext card in ${nextText.join(' ')}`;
+            let nextText = [];
+            if (days) nextText.push(`${days} day${days > 1 ? 's' : ''}`);
+            if (hours) nextText.push(`${hours} hour${hours > 1 ? 's' : ''}`);
+            if (minutes) nextText.push(`${minutes} min${minutes > 1 ? 's' : ''}`);
+            flashcard.textContent += `\nNext card in ${nextText.join(' ')}`;
         }
 
         this.updateStats();
@@ -233,51 +268,49 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const nextCard = this.reviewQueue.shift();
-
       slideCard(direction, () => {
         currentCard = nextCard;
         showCard();  // content updates AFTER slide animation
         this.updateStats();
       });
+
     }
 
     gradeCard(rating) {
       if (!currentCard) return;
+
       const card = currentCard;
       const now = Date.now();
       const idx = this.cards.findIndex(c => c.id === card.id);
       if (idx === -1) return;
+
+      this.sessionStats.total++;
+      this.sessionStats[rating]++;
+
+      if (card.state === "new") this.sessionStats.new++;
+      else if (card.state === "learning") this.sessionStats.learning++;
+      else if (card.state === "review") this.sessionStats.review++;
 
       switch (rating) {
         case "again":
           card.state = "learning";
           card.interval = 0;
           card.reps = 0;
-          card.due = now + 1 * 60 * 1000; // 1 min review
-          card.ease = Math.max(1.3, card.ease * 0.85); // multiplicative ease adjustment
+          card.due = now + 60 * 1000;
+          card.ease = Math.max(1.3, card.ease - 0.2);
           break;
 
         case "hard":
           card.state = "learning";
-          card.due = now + 5 * 60 * 1000; // 5 min review
-          card.ease = Math.max(1.3, card.ease * 0.95);
+          card.due = now + 5 * 60 * 1000;
+          card.ease = Math.max(1.3, card.ease - 0.15);
           break;
 
         case "good":
           card.reps += 1;
-
-          // Anti-fatigue rule: graduate after 2 good answers in one session
-          if (card.state === "learning" && card.reps >= 2) {
-            card.state = "review";
-            card.interval = 1; // tomorrow
-            card.due = now + 86400000;
-            break;
-          }
-
           if (card.reps < this.LEARNING_STEPS.length) {
             card.state = "learning";
-            const stepMinutes = this.LEARNING_STEPS[card.reps];
-            card.due = now + stepMinutes * 60 * 1000;
+            card.due = now + this.LEARNING_STEPS[card.reps] * 60 * 1000;
           } else {
             card.state = "review";
             card.interval = card.interval
@@ -296,24 +329,13 @@ document.addEventListener('DOMContentLoaded', () => {
           break;
       }
 
-      if (card.state === "new") {
-        const todayData = JSON.parse(localStorage.getItem(this.todayKey) || "{}");
-        const todayStr = new Date().toDateString();
-        todayData[todayStr] = (todayData[todayStr] || 0) + 1;
-        localStorage.setItem(this.todayKey, JSON.stringify(todayData));
-      }
-
-       // Reinsert learning card AFTER all unseen cards to avoid loops
+      // Reinsert learning card dynamically
       if (card.state === "learning") {
-        const unseenCount = this.reviewQueue.filter(
-          c => c.state === "new"
-        ).length;
-
-        const pos = Math.min(
-          unseenCount + 1,
-          this.reviewQueue.length
-        );
-
+        const gap =
+        rating === "again" ? 1 :
+        rating === "hard"  ? 2 :
+        Math.min(this.LEARNING_REINSERT_GAP, 5);
+        const pos = Math.min(gap, this.reviewQueue.length);
         this.reviewQueue.splice(pos, 0, card);
       }
 
@@ -331,17 +353,45 @@ document.addEventListener('DOMContentLoaded', () => {
       const learningCount = this.cards.filter(c => c.state === "learning").length;
       const reviewCount = this.cards.filter(c => c.state === "review" || (c.state === "learning" && c.reps > 1)).length;
 
-      // Include soon-due cards in progress bar
-      const now = Date.now();
-      const soonDue = this.cards.filter(c => c.due <= now + 5 * 60 * 1000).length;
-
       document.getElementById("new-count").textContent = newCount;
       document.getElementById("learning-count").textContent = learningCount;
       document.getElementById("review-count").textContent = reviewCount;
 
-      const done = learningCount + reviewCount + soonDue;
-      const percent = total ? Math.min(100, Math.round((done / total) * 100)) : 0;
+      const done = learningCount + reviewCount;
+      const percent = total ? Math.round((done / total) * 100) : 0;
       document.getElementById("progress-bar").style.width = `${percent}%`;
+    }
+
+    showSessionSummary() {
+      this.setUIState("summary");
+      const s = this.sessionStats;
+      const durationMin = Math.max(
+        1,
+        Math.round((Date.now() - s.startTime) / 60000)
+      );
+
+      let retention = 0;
+      const graded = s.again + s.hard + s.good + s.easy;
+      if (graded) {
+        retention = Math.round(((s.good + s.easy) / graded) * 100);
+      }
+
+      let summary = [
+        "📊 Session summary",
+        "",
+        `Cards reviewed: ${s.total}`,
+        `• New: ${s.new}`,
+        `• Learning: ${s.learning}`,
+        `• Review: ${s.review}`,
+        "",
+        `Performance: ${retention}% retention`,
+        `Again: ${s.again}  Hard: ${s.hard}`,
+        `Good: ${s.good}  Easy: ${s.easy}`,
+        "",
+        `Time spent: ${durationMin} min`
+      ];
+
+      flashcard.textContent = summary.join("\n");
     }
 
     saveCardState(card) {
@@ -368,9 +418,42 @@ document.addEventListener('DOMContentLoaded', () => {
         this.getNextCard();
       }
 
-      // Recheck every 5 seconds to catch soon-due cards
-      this._dueTimer = setTimeout(() => this.startDueWatcher(), 5000);
+      const upcoming = this.cards
+        .filter(c => c.due > now)
+        .sort((a, b) => a.due - b.due);
+
+      if (upcoming.length > 0) {
+        const nextDue = upcoming[0].due - now;
+        this._dueTimer = setTimeout(() => this.startDueWatcher(), nextDue);
+      }
     }
+
+    isSessionOver() {
+      return Date.now() - this.sessionStart >= this.DAILY_LIMIT_MS;
+    }
+
+    resetSessionStats() {
+      this.sessionStats = {
+        total: 0,
+        new: 0,
+        learning: 0,
+        review: 0,
+        again: 0,
+        hard: 0,
+        good: 0,
+        easy: 0,
+        startTime: Date.now()
+      };
+    }
+
+    setUIState(mode) {
+      if (mode === "card") {
+        ttsBtn.classList.remove("hidden");
+      } else {
+        ttsBtn.classList.add("hidden");
+      }
+    }
+
   } // end of class
 
   const srs = new SRS();
