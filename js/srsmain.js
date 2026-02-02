@@ -133,15 +133,16 @@ document.addEventListener('DOMContentLoaded', () => {
       this.reviewQueue = [];
       this.currentDeckFile = null;
 
-      // Adjustable learning steps (in minutes)
-      this.LEARNING_STEPS = [1, 10, 60]; 
+      // Improved learning steps (minutes)
+      this.LEARNING_STEPS = [1, 5, 15, 30, 60];
 
       this.NEW_LIMIT = 20;
+      this.todayKey = `srs:${this.currentDeckFile}:daily`;
+
       this.LEARN_AHEAD_MS = 20 * 60 * 1000; // 20 minutes
       this.LEARNING_REINSERT_GAP = 3; // cards later
       this.MAX_INTERVAL_DAYS = 365; // cap max interval
-      const FIRST_REVIEW_MS = 90 * 60 * 1000; // 1.5 hours first review
-
+      this.FIRST_REVIEW_MS = 90 * 60 * 1000; // 1.5 hours first review
       this._dueTimer = null;
     }
 
@@ -161,25 +162,25 @@ document.addEventListener('DOMContentLoaded', () => {
               state: "new",
               interval: 0,
               ease: 2.5,
-              due: Date.now() + this.FIRST_REVIEW_MS, // set first review to 1.5h
+              due: Date.now() + this.FIRST_REVIEW_MS,
               reps: 0
             };
       });
 
       this.buildReviewQueue();
-      this.updateStats();
-
-      // Reset global currentCard and flipped state
       currentCard = null;
       flipped = false;
-
+      this.updateStats();
       this.getNextCard();
-
       this.startDueWatcher();
     }
 
     buildReviewQueue() {
       const now = Date.now();
+
+      const todayData = JSON.parse(localStorage.getItem(this.todayKey) || "{}");
+      const learntToday = todayData[`${new Date().toDateString()}`] || 0;
+      const availableNew = Math.max(0, this.NEW_LIMIT - learntToday);
 
       const review = this.cards
         .filter(c => c.state === "review" && c.due <= now)
@@ -197,31 +198,35 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     getNextCard() {
+      // If queue empty, check for soon-due cards (within 5 min)
       if (!this.reviewQueue.length) {
-        this.buildReviewQueue();
+        const now = Date.now();
+        const soonDue = this.cards.filter(c => c.due <= now + 5 * 60 * 1000);
+        if (soonDue.length) this.reviewQueue.push(...soonDue);
       }
 
       if (!this.reviewQueue.length) {
         currentCard = null;
         flashcard.textContent = "⏳ Session complete. Waiting for next review…";
-        
+
+        // Find next due card
         const nextDue = this.cards
           .filter(c => c.due > Date.now())
           .sort((a, b) => a.due - b.due)[0];
 
         if (nextDue) {
-            let ms = nextDue.due - Date.now();
-            const days = Math.floor(ms / 86400000);
-            ms %= 86400000;
-            const hours = Math.floor(ms / 3600000);
-            ms %= 3600000;
-            const minutes = Math.ceil(ms / 60000);
+          let ms = nextDue.due - Date.now();
+          const days = Math.floor(ms / 86400000);
+          ms %= 86400000;
+          const hours = Math.floor(ms / 3600000);
+          ms %= 3600000;
+          const minutes = Math.ceil(ms / 60000);
 
-            let nextText = [];
-            if (days) nextText.push(`${days} day${days > 1 ? 's' : ''}`);
-            if (hours) nextText.push(`${hours} hour${hours > 1 ? 's' : ''}`);
-            if (minutes) nextText.push(`${minutes} min${minutes > 1 ? 's' : ''}`);
-            flashcard.textContent += `\nNext card in ${nextText.join(' ')}`;
+          let nextText = [];
+          if (days) nextText.push(`${days} day${days > 1 ? 's' : ''}`);
+          if (hours) nextText.push(`${hours} hour${hours > 1 ? 's' : ''}`);
+          if (minutes) nextText.push(`${minutes} min${minutes > 1 ? 's' : ''}`);
+          flashcard.textContent += `\nNext card in ${nextText.join(' ')}`;
         }
 
         this.updateStats();
@@ -246,22 +251,25 @@ document.addEventListener('DOMContentLoaded', () => {
           card.state = "learning";
           card.interval = 0;
           card.reps = 0;
-          card.due = now + 60 * 1000;
-          card.ease = Math.max(1.3, card.ease - 0.2);
+          card.due = now + 1 * 60 * 1000; // 1 min review
+          card.ease = Math.max(1.3, card.ease * 0.85); // multiplicative ease adjustment
           break;
 
         case "hard":
           card.state = "learning";
-          card.due = now + 5 * 60 * 1000;
-          card.ease = Math.max(1.3, card.ease - 0.15);
+          card.due = now + 5 * 60 * 1000; // 5 min review
+          card.ease = Math.max(1.3, card.ease * 0.95);
           break;
 
         case "good":
           card.reps += 1;
           if (card.reps < this.LEARNING_STEPS.length) {
+            // Dynamic learning steps
+            const stepMinutes = this.LEARNING_STEPS[card.reps] * card.ease;
             card.state = "learning";
-            card.due = now + this.LEARNING_STEPS[card.reps] * 60 * 1000;
+            card.due = now + stepMinutes * 60 * 1000;
           } else {
+            // SM-2 style review
             card.state = "review";
             card.interval = card.interval
               ? Math.min(this.MAX_INTERVAL_DAYS, Math.round(card.interval * card.ease))
@@ -277,6 +285,13 @@ document.addEventListener('DOMContentLoaded', () => {
           card.interval = card.interval ? Math.min(this.MAX_INTERVAL_DAYS, card.interval * 2.5) : 4;
           card.due = now + card.interval * 86400000;
           break;
+      }
+
+      if (card.state === "new") {
+        const todayData = JSON.parse(localStorage.getItem(this.todayKey) || "{}");
+        const todayStr = new Date().toDateString();
+        todayData[todayStr] = (todayData[todayStr] || 0) + 1;
+        localStorage.setItem(this.todayKey, JSON.stringify(todayData));
       }
 
       // Reinsert learning card dynamically
@@ -298,12 +313,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const learningCount = this.cards.filter(c => c.state === "learning").length;
       const reviewCount = this.cards.filter(c => c.state === "review" || (c.state === "learning" && c.reps > 1)).length;
 
+      // Include soon-due cards in progress bar
+      const now = Date.now();
+      const soonDue = this.cards.filter(c => c.due <= now + 5 * 60 * 1000).length;
+
       document.getElementById("new-count").textContent = newCount;
       document.getElementById("learning-count").textContent = learningCount;
       document.getElementById("review-count").textContent = reviewCount;
 
-      const done = learningCount + reviewCount;
-      const percent = total ? Math.round((done / total) * 100) : 0;
+      const done = learningCount + reviewCount + soonDue;
+      const percent = total ? Math.min(100, Math.round((done / total) * 100)) : 0;
       document.getElementById("progress-bar").style.width = `${percent}%`;
     }
 
@@ -331,16 +350,9 @@ document.addEventListener('DOMContentLoaded', () => {
         this.getNextCard();
       }
 
-      const upcoming = this.cards
-        .filter(c => c.due > now)
-        .sort((a, b) => a.due - b.due);
-
-      if (upcoming.length > 0) {
-        const nextDue = upcoming[0].due - now;
-        this._dueTimer = setTimeout(() => this.startDueWatcher(), nextDue);
-      }
+      // Recheck every 5 seconds to catch soon-due cards
+      this._dueTimer = setTimeout(() => this.startDueWatcher(), 5000);
     }
-
   } // end of class
 
   const srs = new SRS();
@@ -465,23 +477,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   function stripAfterDashOrParen(str) {
-    // Remove anything after "("
-    str = str.split("(")[0].trim();
-
-    // Remove plural markers like ", -s", ", -e", ", -en"
-    str = str.replace(/,\s*-\w+/g, "").trim();
-
-    // Remove hyphen only when followed by a space "- "
-    if (str.includes("- ")) {
-        str = str.split("- ")[0].trim();
-    }
-
-    // Remove dot and everything after it
-    if (str.includes(".")) {
-        str = str.split(".")[0].trim();
-    }
-
-    return str;
+    return str
+    .split("(")[0]
+    .replace(/,\s*-\w+/g, "")
+    .split("- ")[0]
+    .split(".")[0]
+    .trim();
   }
 
   // Buttons to grade card (example: you can add UI buttons for these)
