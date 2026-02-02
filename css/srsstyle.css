@@ -280,6 +280,18 @@ footer {
   margin-top: 15px;
   border-radius: 13px 13px 0 0;
 }
+/* For small devices like iPhone Mini 12 (~375px width) */
+@media (max-width: 390px) {
+  .card {
+    min-height: 300px;   /* taller minimum height */
+    max-height: 600px;   /* taller maximum height */
+    padding: 1.5rem;     /* extra padding for readability */
+  }
+
+  .card.summary {
+    max-height: 80vh;    /* allow more space for summary */
+  }
+}
 
 @media (max-width: 400px) {
   h1 {
