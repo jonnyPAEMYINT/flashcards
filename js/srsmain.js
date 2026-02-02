@@ -133,8 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
       this.reviewQueue = [];
       this.currentDeckFile = null;
 
-      // Improved learning steps (minutes)
-      this.LEARNING_STEPS = [1, 5, 15, 30, 60];
+      this.LEARNING_STEPS = [5, 15, 30, 60, 120];
 
       this.NEW_LIMIT = 20;
       this.todayKey = `srs:${this.currentDeckFile}:daily`;
@@ -266,13 +265,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         case "good":
           card.reps += 1;
+
+          // Anti-fatigue rule: graduate after 2 good answers in one session
+          if (card.state === "learning" && card.reps >= 2) {
+            card.state = "review";
+            card.interval = 1; // tomorrow
+            card.due = now + 86400000;
+            break;
+          }
+
           if (card.reps < this.LEARNING_STEPS.length) {
-            // Dynamic learning steps
-            const stepMinutes = this.LEARNING_STEPS[card.reps] * card.ease;
             card.state = "learning";
+            const stepMinutes = this.LEARNING_STEPS[card.reps];
             card.due = now + stepMinutes * 60 * 1000;
           } else {
-            // SM-2 style review
             card.state = "review";
             card.interval = card.interval
               ? Math.min(this.MAX_INTERVAL_DAYS, Math.round(card.interval * card.ease))
@@ -297,10 +303,17 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem(this.todayKey, JSON.stringify(todayData));
       }
 
-      // Reinsert learning card dynamically
+       // Reinsert learning card AFTER all unseen cards to avoid loops
       if (card.state === "learning") {
-        const gap = rating === "hard" ? 1 : this.LEARNING_REINSERT_GAP;
-        const pos = Math.min(gap, this.reviewQueue.length);
+        const unseenCount = this.reviewQueue.filter(
+          c => c.state === "new"
+        ).length;
+
+        const pos = Math.min(
+          unseenCount + 1,
+          this.reviewQueue.length
+        );
+
         this.reviewQueue.splice(pos, 0, card);
       }
 
