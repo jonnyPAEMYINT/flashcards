@@ -197,7 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
       this.reviewQueue = [...review, ...learning, ...newCards];
     }
 
-    getNextCard() {
+    getNextCard(direction = "next") {
       // If queue empty, check for soon-due cards (within 5 min)
       if (!this.reviewQueue.length) {
         const now = Date.now();
@@ -209,7 +209,6 @@ document.addEventListener('DOMContentLoaded', () => {
         currentCard = null;
         flashcard.textContent = "⏳ Session complete. Waiting for next review…";
 
-        // Find next due card
         const nextDue = this.cards
           .filter(c => c.due > Date.now())
           .sort((a, b) => a.due - b.due)[0];
@@ -234,9 +233,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      currentCard = this.reviewQueue.shift();
-      showCard();
-      this.updateStats();
+      const nextCard = this.reviewQueue.shift();
+
+      slideCard(direction, () => {
+        currentCard = nextCard;
+        showCard();  // content updates AFTER slide animation
+        this.updateStats();
+      });
     }
 
     gradeCard(rating) {
@@ -304,7 +307,9 @@ document.addEventListener('DOMContentLoaded', () => {
       this.cards[idx] = { ...card };
       this.saveCardState(card);
       this.updateStats();
-      this.getNextCard();
+
+      const direction = rating === "again" ? "right" : "left";
+      this.getNextCard(direction);
     }
 
     updateStats() {
@@ -483,6 +488,19 @@ document.addEventListener('DOMContentLoaded', () => {
     .split("- ")[0]
     .split(".")[0]
     .trim();
+  }
+
+  function slideCard(direction, callback) {
+    const className = direction === "next" ? "slide-left" : "slide-right";
+
+      flashcard.classList.add(className);
+      ttsBtn.classList.add("hidden");
+
+      setTimeout(() => {
+        flashcard.classList.remove(className);
+        ttsBtn.classList.remove("hidden");
+        callback();  // update card data AFTER slide
+      }, 350);
   }
 
   // Buttons to grade card (example: you can add UI buttons for these)
