@@ -1008,4 +1008,20 @@ function loadSavedState() {
     localStorage.setItem("shuffleMode", indexOrder.length > 1 ? "true" : "false");
   }
 
+  const NEW_SRS_VERSION = "1.0"; // change this whenever a new version is available
+  const SRS_PROMPT_KEY = "srsPromptShown";
+  window.addEventListener('DOMContentLoaded', () => {
+    const lastPrompted = localStorage.getItem(SRS_PROMPT_KEY);
+  
+    if (lastPrompted !== NEW_SRS_VERSION) {
+      const trySRS = confirm("There is a new SRS version available now. Do you want to try it?");
+      if (trySRS) {
+        window.location.href = "srs.html";
+      } else {
+        // mark as shown for this version so user won't see it again
+        localStorage.setItem(SRS_PROMPT_KEY, NEW_SRS_VERSION);
+      }
+    }
+  });
+
 });
