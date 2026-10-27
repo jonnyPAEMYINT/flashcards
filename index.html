@@ -2,9 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f766e" />
   <title>German Flashcards</title>
-  
+
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="img/icon/favicon-96x96.png" sizes="96x96" />
   <link rel="icon" type="image/svg+xml" href="img/icon/favicon.svg" />
@@ -13,91 +14,172 @@
   <meta name="apple-mobile-web-app-title" content="JPM" />
   <link rel="manifest" href="img/icon/site.webmanifest" />
 
-  <link rel="stylesheet" href="css/style.css" /> 
-  <script type="text/javascript" src="js/main.js"></script>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-KE1FPSFJT1"></script>
   <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-KE1FPSFJT1');
+    try {
+      var t = JSON.parse(localStorage.getItem('dl.settings') || '{}').theme;
+      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {}
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <link rel="stylesheet" href="css/style.css" />
+
+  <!-- Deferred scripts run in order after the page is parsed.
+       main.js works without confetti (it checks for it first). -->
+  <script defer src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script defer src="js/main.js"></script>
 </head>
 <body>
 
-    <div class="wrapper">
-      <h1>Es macht Spaß, Deutsch zu lernen</h1>
+  <div class="wrapper">
+    <h1 lang="de">Es macht Spaß, Deutsch zu lernen</h1>
 
-      <!-- First dropdown: main category -->
-      <select id="main-category">
-        <option value="phrases">Phrases</option>
-        <option value="vocabulary">Vocabulary</option>
-        <option value="verbs">Verbs</option>
-        <option value="word_relationships">Word Relationships</option>
-        <option value="situations">Situations</option>
-        <option value="challenge">30 days challenge</option>
-        <option value="sicher">Schritte & Sicher (Lernwortschatz)</option>
+    <div class="topbar">
+      <div id="stats" aria-live="polite"></div>
+      <!-- "Study today" (due + new cards), "Review N" once the goal is met, "Exit session" while running -->
+      <button type="button" id="review-due" class="secondary" hidden>Study today</button>
+    </div>
+    <div id="notice" role="status"></div>
+
+    <label class="sr-only" for="main-category">Category</label>
+    <select id="main-category">
+    </select>
+
+    <label class="sr-only" for="sub-category">Topic</label>
+    <select id="sub-category"></select>
+
+    <!-- STUDY MODE -->
+    <section id="study" aria-label="Flashcards">
+      <div class="card-container">
+        <button id="tts-btn" type="button" aria-label="Play pronunciation">🔊</button>
+
+        <div class="card" id="flashcard" role="button" tabindex="0" lang="de"
+             aria-live="polite" aria-label="Flashcard. Tap or press space to flip.">
+          <span id="card-text"></span>
+          <small id="card-example" hidden></small>
+        </div>
+
+        <div class="progress-row">
+          <input type="range" id="card-slider" min="0" max="0" value="0" aria-label="Card position" />
+          <div id="card-count">0/0</div>
+        </div>
+      </div>
+
+      <!-- One shared spot: "Show answer" until the answer has been seen, then the four ratings -->
+      <div class="actions">
+        <button type="button" id="show-answer">Show answer</button>
+        <div id="rating" hidden>
+          <button type="button" data-rate="1" aria-label="Again (key 1)">Again</button>
+          <button type="button" data-rate="2" aria-label="Hard (key 2)">Hard</button>
+          <button type="button" data-rate="3" aria-label="Good (key 3)">Good</button>
+          <button type="button" data-rate="4" aria-label="Easy (key 4)">Easy</button>
+        </div>
+      </div>
+
+      <!-- Shown at the end of a batch / deck / review -->
+      <div id="batch-actions" hidden>
+        <button type="button" id="repeat-batch" hidden>Repeat</button>
+        <button type="button" id="next-batch" hidden>Next batch</button>
+        <button type="button" id="start-quiz" hidden>Start Quiz</button>
+        <button type="button" id="exit-review" hidden>Back to lesson</button>
+      </div>
+    </section>
+
+    <!-- QUIZ MODE -->
+    <section class="quiz-container" id="quiz-container" hidden aria-label="Quiz">
+      <h2>Quiz Mode</h2>
+
+      <label class="sr-only" for="quiz-type">Quiz type</label>
+      <select id="quiz-type">
+        <option value="choice">Multiple choice</option>
+        <option value="typing">Typing: see the English, type the German</option>
       </select>
 
-      <!-- Second dropdown: subcategory (populated dynamically) -->
-      <select id="sub-category"></select>
+      <div id="quiz-progress"></div>
+      <div id="quiz-question" lang="de"></div>
 
-      <!-- Flashcard container (same as before) -->
-      <div class="card-container">
-        <button id="tts-btn" aria-label="Play pronunciation">🔊</button>
-        <div class="card" id="flashcard">
-          <div class="front">Front Content</div>
-          <div class="back">Back Content</div>
+      <div class="quiz-options" id="quiz-options" role="group" aria-label="Answers"></div>
+
+      <form id="quiz-type-form" hidden autocomplete="off">
+        <input id="quiz-input" type="text" lang="de" autocapitalize="off"
+               autocorrect="off" spellcheck="false" enterkeyhint="done" aria-label="Your answer" />
+        <div id="umlaut-bar">
+          <button type="button" data-char="ä">ä</button>
+          <button type="button" data-char="ö">ö</button>
+          <button type="button" data-char="ü">ü</button>
+          <button type="button" data-char="ß">ß</button>
         </div>
-        <div class="slider-container">
-          <input type="range" id="card-slider" min="1" max="10" value="1">
-        </div>
-         <div id="card-count">1 / 10</div>
+        <button type="submit" id="quiz-check">Check</button>
+      </form>
+
+      <div id="quiz-feedback" aria-live="assertive"></div>
+
+      <div class="quiz-controls">
+        <button type="button" id="quiz-next">Skip</button>
+        <button type="button" id="quiz-exit" class="secondary">Exit Quiz</button>
       </div>
 
-      <!-- Controls -->
-      <div class="controls">
-        <div class="button-group top-row">
-          <button id="prev">Previous</button>
-          <button id="flip">Flip</button>
-          <button id="next">Next</button>
-        </div>
+      <div id="quiz-result" hidden>
+        <p id="quiz-summary"></p>
+        <ul id="quiz-wrong-list"></ul>
+        <button type="button" id="quiz-retry">Practise mistakes</button>
+      </div>
+    </section>
 
-        <div class="button-group bottom-row">
-          <button id="shuffle">Shuffle</button>
-          <button id="reverse">Reverse</button>
-          <button id="restart">Restart</button>          
+    <!-- Settings -->
+    <details class="settings" id="settings">
+      <summary>⚙ Settings</summary>
+
+      <label class="setting-row">
+        <span>Daily goal (cards)</span>
+        <select id="daily-goal">
+          <option value="10">10</option>
+          <option value="20">20</option>
+          <option value="30">30</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+      </label>
+
+      <label class="setting-row">
+        <span>Auto-play German audio</span>
+        <input type="checkbox" id="autoplay" />
+      </label>
+
+      <label class="setting-row">
+        <span>Theme</span>
+        <select id="theme">
+          <option value="auto">Auto (system)</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </label>
+
+      <label class="setting-row">
+        <span>Reverse (answer side first)</span>
+        <input type="checkbox" id="reverse" />
+      </label>
+
+      <div class="setting-row">
+        <span>Card order</span>
+        <div class="button-group">
+          <button type="button" id="shuffle" class="secondary">Shuffle</button>
+          <button type="button" id="restart" class="secondary">Restart</button>
         </div>
       </div>
 
-      <div class="button-group top-row">
-        <button id="repeat-batch" style="display:none;">Repeat</button>
-        <button id="next-batch" style="display:none;">Next</button>
-        <button id="start-quiz" style="display:none;">Start Quiz</button>
-      </div>
+      <p class="hint-text">The typing quiz shows the English and asks you to type the German.
+        Shortcuts: ← → move · Space show answer · 1–4 rate · U undo · S speak</p>
+    </details>
+  </div>
 
-      <!-- QUIZ MODE -->
-      <div class="quiz-container" id="quiz-container" style="display:none;">
-        <h2>Quiz Mode</h2>
-        <div id="quiz-progress"></div>
-        <div id="quiz-question">Question will appear here</div>
-        <div class="quiz-options" id="quiz-options">
-          <!-- Options generated by JS -->
-        </div>
-        <div class="quiz-controls">
-          <button id="quiz-next">Next Question</button>
-          <button id="quiz-exit" style="display:none;">Exit Quiz</button>
-        </div>
-        <div id="quiz-feedback"></div>
-      </div>
+  <footer>
+    Developed with ❤️ by JPM. &copy; <span id="year">2026</span>
+  </footer>
 
-    </div>
-      
-    <footer>
-      Developed with ❤️ by JPM. &copy; <span id="year">2025</span>
-    </footer>
-  
+  <!-- Undo toast for the last rating -->
+  <div id="toast" role="status" hidden>
+    <span id="toast-text"></span>
+    <button type="button" id="toast-undo">Undo</button>
+  </div>
+
 </body>
 </html>
