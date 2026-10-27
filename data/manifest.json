@@ -1,0 +1,146 @@
+{
+  "categories": [
+    {
+      "id": "phrases",
+      "name": "Phrases",
+      "lessons": [
+        { "name": "Greetings, small talk, daily expressions", "file": "data/phrases/common_phrases.json" },
+        { "name": "Asking directions, transportation", "file": "data/phrases/travel.json" },
+        { "name": "Restaurants, stores, prices", "file": "data/phrases/shopping.json" },
+        { "name": "Doctor visits, emergencies", "file": "data/phrases/health.json" }
+      ]
+    },
+    {
+      "id": "vocabulary",
+      "name": "Vocabulary",
+      "lessons": [
+        { "name": "Family members & relationships", "file": "data/vocabulary/family.json" },
+        { "name": "Emotions & personality traits", "file": "data/vocabulary/feelings.json" },
+        { "name": "Health & body", "file": "data/vocabulary/health_body.json" },
+        { "name": "Clothes & describing people", "file": "data/vocabulary/clothing.json" },
+        { "name": "Colours, Shapes, and Sizes", "file": "data/vocabulary/colors_shapes_sizes.json" },
+        { "name": "Fruits, vegetables, meals, drinks", "file": "data/vocabulary/food_drink.json" },
+        { "name": "Household items, rooms, objects", "file": "data/vocabulary/daily_life.json" },
+        { "name": "City & nature", "file": "data/vocabulary/places.json" },
+        { "name": "Pets, farm, wild", "file": "data/vocabulary/animals.json" },
+        { "name": "Modes of transport", "file": "data/vocabulary/transport.json" },
+        { "name": "Day, month, weather, seasons", "file": "data/vocabulary/weather_season.json" },
+        { "name": "School & Education", "file": "data/vocabulary/school_education.json" },
+        { "name": "Jobs & Professions", "file": "data/vocabulary/jobs_professions.json" }
+      ]
+    },
+    {
+      "id": "verbs",
+      "name": "Verbs",
+      "lessons": [
+        { "name": "A1-A2 common verbs", "file": "data/verbs/a12_common_verbs.json" },
+        { "name": "B1-B2 common verbs", "file": "data/verbs/b12_common_verbs.json" },
+        { "name": "A1-B2 Präteritum – Perfekt (auxiliary verb)", "file": "data/verbs/a1b2_past_perfekt_verbs.json" },
+        { "name": "Irregular verbs", "file": "data/verbs/irregularverbs.json" },
+        { "name": "Dative verbs", "file": "data/verbs/dative_verbs.json" },
+        { "name": "Reflexive Verbs", "file": "data/verbs/reflexive_verbs.json" },
+        { "name": "Modal Verbs", "file": "data/verbs/modal_verbs.json" },
+        { "name": "Separable verbs", "file": "data/verbs/separable_verbs.json" },
+        { "name": "Verbs mit preposition", "file": "data/verbs/preposition_verbs.json" },
+        { "name": "Daily routine verbs", "file": "data/verbs/daily_routine_verbs.json" },
+        { "name": "Health and body verbs", "file": "data/verbs/health_body_verbs.json" },
+        { "name": "Feelings and states verbs", "file": "data/verbs/feelings_states_verbs.json" },
+        { "name": "Movement and travel verbs", "file": "data/verbs/movement_travel_verbs.json" },
+        { "name": "Communication and social verbs", "file": "data/verbs/communication_social_verbs.json" },
+        { "name": "Work and study verbs", "file": "data/verbs/work_study_verbs.json" },
+        { "name": "Shopping and money verbs", "file": "data/verbs/shopping_money_verbs.json" },
+        { "name": "Technology and Internet verbs", "file": "data/verbs/technology_internet_verbs.json" },
+        { "name": "Problem and solution verbs", "file": "data/verbs/problem_solution_verbs.json" },
+        { "name": "Helping and dependence verbs", "file": "data/verbs/helping_dependence_verbs.json" }
+      ]
+    },
+    {
+      "id": "word_relationships",
+      "name": "Word Relationships",
+      "lessons": [
+        { "name": "Opposite words", "file": "data/word_relationships/antonyms.json" },
+        { "name": "Similar words", "file": "data/word_relationships/synonyms.json" },
+        { "name": "Common prepositions", "file": "data/word_relationships/prepositions.json" },
+        { "name": "Common adverbs", "file": "data/word_relationships/adverb.json" },
+        { "name": "Word families, compound nouns", "file": "data/word_relationships/compounds.json" },
+        { "name": "Verbs to nouns", "file": "data/word_relationships/verbs_nomen.json" },
+        { "name": "Prefixed verbs to nouns", "file": "data/word_relationships/prefixed_verbs_nomen.json" },
+        { "name": "German collocation", "file": "data/word_relationships/collocation.json" },
+        { "name": "Fixed expressions", "file": "data/word_relationships/fixed_expression.json" },
+        { "name": "Idiomatic phrases", "file": "data/word_relationships/idioms.json" }
+      ]
+    },
+    {
+      "id": "situations",
+      "name": "Situations",
+      "lessons": [
+        { "name": "Booking tickets, directions", "file": "data/situations/travel.json" },
+        { "name": "Ordering food", "file": "data/situations/restaurant.json" },
+        { "name": "Office/school terms, phrases", "file": "data/situations/work_school.json" },
+        { "name": "Sports, hobbies, leisure", "file": "data/situations/hobbies.json" },
+        { "name": "Health, accidents, urgent situations", "file": "data/situations/emergencies.json" }
+      ]
+    },
+    {
+      "id": "challenge",
+      "name": "30 days challenge",
+      "lessons": [
+        { "name": "Ausspache Herausfordern", "file": "data/challenge/speaking_30_days.json" }
+      ]
+    },
+    {
+      "id": "sicher",
+      "name": "Schritte & Sicher (Lernwortschatz)",
+      "groups": [
+        {
+          "name": "A2.1",
+          "lessons": [
+            { "name": "Lektion 1 (Ankommen)", "file": "data/sicher/A2_1/a21_lektion1_ankommen.json" },
+            { "name": "Lektion 2 (Zu Hause)", "file": "data/sicher/A2_1/a21_lektion2_zuhause.json" },
+            { "name": "Lektion 3 (Essen und trinken)", "file": "data/sicher/A2_1/a21_lektion3_essen_und_trinken.json" },
+            { "name": "Lektion 4 (Arbeitswelt)", "file": "data/sicher/A2_1/a21_lektion4_arbeitswelt.json" },
+            { "name": "Lektion 5 (Sport und Fitness)", "file": "data/sicher/A2_1/a21_lektion5_sport_und_fitness.json" },
+            { "name": "Lektion 6 (Ausbildung und Karriere)", "file": "data/sicher/A2_1/a21_lektion6_ausbildung_und_karriere.json" },
+            { "name": "Lektion 7 (Feste und Geschenke)", "file": "data/sicher/A2_1/a21_lektion7_Feste_und_geschenke.json" }
+          ]
+        },
+        {
+          "name": "A2.2",
+          "lessons": [
+            { "name": "Lektion 8 (Am Wochenende)", "file": "data/sicher/A2_2/a22_lektion8_am_wochenende.json" },
+            { "name": "Lektion 9 (Meine Sachen)", "file": "data/sicher/A2_2/a22_lektion9_meine_sachen.json" },
+            { "name": "Lektion 10 (Kommunikation)", "file": "data/sicher/A2_2/a22_lektion10_kommunikation.json" },
+            { "name": "Lektion 11 (Unterwegs)", "file": "data/sicher/A2_2/a22_lektion11_unterwegs.json" },
+            { "name": "Lektion 12 (Reisen)", "file": "data/sicher/A2_2/a22_lektion12_reisen.json" },
+            { "name": "Lektion 13 (Geld)", "file": "data/sicher/A2_2/a22_lektion13_geld.json" },
+            { "name": "Lektion 14 (Lebensstationen)", "file": "data/sicher/A2_2/a22_lektion14_lebensstationen.json" }
+          ]
+        },
+        {
+          "name": "B1.1",
+          "lessons": [
+            { "name": "Lektion 1 (Glück im Alltag)", "file": "data/sicher/B1_1/b1_lektion1_glück_im_alltag.json" },
+            { "name": "Lektion 2 (Unterhaltung)", "file": "data/sicher/B1_1/b1_lektion2_unterhaltung.json" },
+            { "name": "Lektion 3 (Gesund bleiben)", "file": "data/sicher/B1_1/b1_lektion3_gesund_bleiben.json" },
+            { "name": "Lektion 4 (Sprachen)", "file": "data/sicher/B1_1/b1_lektion4_sprachen.json" },
+            { "name": "Lektion 5 (Eine Arbeit finden)", "file": "data/sicher/B1_1/b1_lektion5_eine_arbeit_finden.json" },
+            { "name": "Lektion 6 (Dienstleistung)", "file": "data/sicher/B1_1/b1_lektion6_dienstleistung.json" },
+            { "name": "Lektion 7 (Rund ums Wohnen)", "file": "data/sicher/B1_1/b1_lektion7_rund_ums_wohnen.json" }
+          ]
+        },
+        {
+          "name": "B1.2",
+          "lessons": [
+            { "name": "Lektion 8 (Unter Kollegen)", "file": "data/sicher/B1_2/b12_lektion8_unter_kollegen.json" },
+            { "name": "Lektion 9 (Virtuelle Welt)", "file": "data/sicher/B1_2/b12_lektion9_virtuelle_welt.json" },
+            { "name": "Lektion 10 (Werbung und Konsum)", "file": "data/sicher/B1_2/b12_lektion10_werbung_und_konsum.json" },
+            { "name": "Lektion 11 (Miteinander)", "file": "data/sicher/B1_2/b12_lektion11_miteinander.json" },
+            { "name": "Lektion 12 (Soziales Engagement)", "file": "data/sicher/B1_2/b12_lektion12_soziales_engagement.json" },
+            { "name": "Lektion 13 (Aus Politik und Geschichte)", "file": "data/sicher/B1_2/b12_lektion13_aus_politik_und_geschichte.json" },
+            { "name": "Lektion 14 (Alte und neue Heimat)", "file": "data/sicher/B1_2/b12_lektion14_alte_und_neue_heimat.json" }
+          ]
+        }
+      ]
+    }
+  ]
+}
