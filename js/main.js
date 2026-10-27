@@ -59,6 +59,8 @@
   const toastText = $('toast-text');
   const toastUndo = $('toast-undo');
   const themeSel = $('theme');
+  const testAudioBtn = $('test-audio');
+  const voiceStatus = $('voice-status');
 
   /* ---------- Constants ---------- */
   //const basePath = '';
@@ -824,12 +826,16 @@
 
   /* ---------- Speech ---------- */
   const hasSpeech = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+  if (hasSpeech) speechSynthesis.getVoices();      // start loading the voice list early (iOS / Android load it lazily)
+
+  const isGerman = v => v.lang && /^de([-_]|$)/i.test(v.lang);
 
   function pickVoice() {
-    const voices = speechSynthesis.getVoices();
-    return voices.find(v => v.lang === 'de-DE' && /google/i.test(v.name)) ||
-           voices.find(v => v.lang === 'de-DE') ||
-           voices.find(v => v.lang && v.lang.startsWith('de')) ||
+    const de = speechSynthesis.getVoices().filter(isGerman);
+    return de.find(v => v.localService && /^de[-_]DE$/i.test(v.lang)) ||
+           de.find(v => v.localService) ||
+           de.find(v => /^de[-_]DE$/i.test(v.lang)) ||
+           de[0] ||
            null;
   }
 
@@ -838,17 +844,64 @@
     ttsBtn.classList.remove('speaking');
   }
 
+  let currentUtterance = null;      // keep a reference: some browsers drop the audio if it is garbage-collected
+  let warnedNoVoice = false;
+
   function speak(text) {
     if (!hasSpeech || !text) return;
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'de-DE';
-    u.rate = 0.9;
-    const voice = pickVoice();
-    if (voice) u.voice = voice;           // without a voice the browser still uses lang
-    u.onstart = () => ttsBtn.classList.add('speaking');
-    u.onend = u.onerror = () => ttsBtn.classList.remove('speaking');
-    speechSynthesis.speak(u);
+
+    const run = () => {
+      try { speechSynthesis.resume(); } catch { /* ignore */ }
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'de-DE';
+      u.rate = 0.9;
+      const voice = pickVoice();
+      if (voice) u.voice = voice;                    // without a voice the browser still uses lang
+      u.onstart = () => ttsBtn.classList.add('speaking');
+      u.onend = () => ttsBtn.classList.remove('speaking');
+      u.onerror = e => {
+        ttsBtn.classList.remove('speaking');
+        if (e.error && !['canceled', 'interrupted'].includes(e.error)) notice('Audio problem: ' + e.error);
+      };
+      currentUtterance = u;
+      speechSynthesis.speak(u);
+
+      if (!voice && !warnedNoVoice && speechSynthesis.getVoices().length) {
+        warnedNoVoice = true;
+        notice('No German voice found on this phone. Open Settings → Test audio for help.');
+      }
+    };
+
+    // Start straight away when idle: iOS wants speech to begin inside the tap.
+    // Only when something is already speaking do we cancel and wait a moment.
+    if (speechSynthesis.speaking || speechSynthesis.pending) {
+      speechSynthesis.cancel();
+      setTimeout(run, 80);
+    } else {
+      run();
+    }
+  }
+
+  // iOS only lets speech start from a tap, so the first tap anywhere speaks a silent
+  // utterance. After that, long-press and auto-play are allowed too.
+  function unlockSpeech() {
+    if (!hasSpeech) return;
+    try {
+      const u = new SpeechSynthesisUtterance(' ');
+      u.volume = 0;
+      speechSynthesis.speak(u);
+    } catch { /* ignore */ }
+  }
+  document.addEventListener('click', unlockSpeech, { once: true });
+
+  function voiceReport() {
+    if (!hasSpeech) return 'This browser has no speech support. Open the page in Safari or Chrome, not inside another app.';
+    const all = speechSynthesis.getVoices();
+    if (!all.length) return 'The phone has not loaded its voice list yet. Wait a few seconds and tap again.';
+    const de = all.filter(isGerman);
+    const v = pickVoice();
+    return `Voices found: ${all.length} · German: ${de.length}` +
+           (v ? ` · using ${v.name}` : ' · none. Install a German voice, then reopen the app.');
   }
 
   // Optional JSON fields ttsFront / ttsBack override what is spoken.
@@ -859,7 +912,9 @@
 
   function speakCurrent() {
     if (finished || !cards.length) return;
-    speak(speechTarget(currentCard()));
+    const text = speechTarget(currentCard());
+    if (!text) { notice('Audio plays the German side. Show the answer first.'); return; }
+    speak(text);
   }
 
   function maybeAutoplay() {
@@ -1326,6 +1381,11 @@
     settings.theme = themeSel.value;
     store.set(KEYS.settings, settings);
     applyTheme();
+  });
+
+  testAudioBtn.addEventListener('click', () => {
+    voiceStatus.textContent = voiceReport();
+    speak('Guten Tag! Wie geht es dir?');
   });
 
   window.addEventListener('resize', fitText);
