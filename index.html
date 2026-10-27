@@ -128,46 +128,57 @@
     <details class="settings" id="settings">
       <summary>⚙ Settings</summary>
 
-      <label class="setting-row">
-        <span>Daily goal (cards)</span>
-        <select id="daily-goal">
-          <option value="10">10</option>
-          <option value="20">20</option>
-          <option value="30">30</option>
-          <option value="50">50</option>
-          <option value="100">100</option>
-        </select>
-      </label>
-
-      <label class="setting-row">
-        <span>Auto-play German audio</span>
-        <input type="checkbox" id="autoplay" />
-      </label>
-
-      <label class="setting-row">
-        <span>Theme</span>
-        <select id="theme">
-          <option value="auto">Auto (system)</option>
-          <option value="light">Light</option>
-          <option value="dark">Dark</option>
-        </select>
-      </label>
-
-      <label class="setting-row">
-        <span>Reverse (answer side first)</span>
-        <input type="checkbox" id="reverse" />
-      </label>
-
-      <div class="setting-row">
-        <span>Card order</span>
-        <div class="button-group">
-          <button type="button" id="shuffle" class="secondary">Shuffle</button>
-          <button type="button" id="restart" class="secondary">Restart</button>
+      <div class="set-group">
+        <h3>Study</h3>
+        <label class="setting-row">
+          <span>Daily goal</span>
+          <select id="daily-goal" aria-label="Daily goal in cards">
+            <option value="10">10 cards</option>
+            <option value="20">20 cards</option>
+            <option value="30">30 cards</option>
+            <option value="50">50 cards</option>
+            <option value="100">100 cards</option>
+          </select>
+        </label>
+        <label class="setting-row">
+          <span>Reverse <small>answer side first</small></span>
+          <input type="checkbox" id="reverse" class="switch" />
+        </label>
+        <div class="setting-row">
+          <span>Card order</span>
+          <div class="button-group">
+            <button type="button" id="shuffle" class="chip">Shuffle</button>
+            <button type="button" id="restart" class="chip">Restart</button>
+          </div>
         </div>
       </div>
 
-      <p class="hint-text">The typing quiz shows the English and asks you to type the German.
-        Shortcuts: ← → move · Space show answer · 1–4 rate · U undo · S speak</p>
+      <div class="set-group">
+        <h3>Audio</h3>
+        <label class="setting-row">
+          <span>Auto-play German <small>needs a German voice</small></span>
+          <input type="checkbox" id="autoplay" class="switch" />
+        </label>
+        <div class="setting-row">
+          <span>Check audio</span>
+          <button type="button" id="test-audio" class="chip">Test</button>
+        </div>
+        <p class="hint-text" id="voice-status"></p>
+      </div>
+
+      <div class="set-group">
+        <h3>Appearance</h3>
+        <label class="setting-row">
+          <span>Theme</span>
+          <select id="theme" aria-label="Theme">
+            <option value="auto">Auto</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </label>
+      </div>
+
+      <p class="hint-text">Keys: ← → move · Space show · 1–4 rate · U undo · S speak</p>
     </details>
   </div>
 
