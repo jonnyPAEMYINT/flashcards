@@ -1,886 +1,1219 @@
-document.addEventListener('DOMContentLoaded', () => {
-  const mainCategory = document.getElementById('main-category');
-  const subCategory = document.getElementById('sub-category');
-  const cardContainer = document.querySelector(".card-container");
-  const flashcard = document.getElementById('flashcard');
-  const cardCount = document.getElementById('card-count');
-  const slider = document.getElementById('card-slider');
-  const flashCardButtons = document.querySelector(".controls");
-  const nextBtn = document.getElementById('next');
-  const prevBtn = document.getElementById('prev');
-  const flipBtn = document.getElementById('flip');
-  const shuffleBtn = document.getElementById('shuffle');
-  const resetBtn = document.getElementById('restart');
-  const reverseBtn = document.getElementById('reverse');
-  const nextBatchBtn = document.getElementById("next-batch");  
-  const repeatBatchBtn = document.getElementById('repeat-batch');
-  const yearSpan = document.getElementById("year");
-  const ttsBtn = document.getElementById("tts-btn");
-  const today = new Date();
-  
-  //const basePath = ""
-  const basePath = "https://jonnypaemyint.github.io/flashcards/"
+/* ============================================================
+   German Flashcards – main.js
+   Same dataset links and the same flow as before:
+   batch (15, then 10 new + 5 review) -> next/repeat -> quiz.
+   New: Leitner self-rating, typing quiz, due review across decks,
+   stats/streak, keyboard + swipe, backup, and a set of bug fixes.
+   ============================================================ */
+(() => {
+  'use strict';
 
-  let cards = [];
-  let indexOrder = [];
-  let currentIndex = 0;
-  let flipped = false;
-  let finished = false;
-  let reverseMode = false; // new variable to track reverse mode
-  let quizMode = false;
-  let currentCardIndex = 1;
+  /* ---------- DOM ---------- */
+  const $ = id => document.getElementById(id);
 
-  // BATCH
-  let allCards = [];          // Full deck (all batches)
-  let batchIndex = 0;         // Tracks which batch is showing
-  let batchSize = 15;         // Number of cards per batch
-  let totalBatches = 0;
-  let currentBatch = 0;
-  let previousCards = [];
-  let reviewHistory = new Map(); // card -> last batch index it was used for
-  let lastLoadedNewCards = [];
+  const mainCategory = $('main-category');
+  const subCategory = $('sub-category');
+  const statsEl = $('stats');
+  const noticeEl = $('notice');
+  const reviewDueBtn = $('review-due');
 
-  const flashcardColors = [
-                            '#d4edc4', // green
-                            '#fff4b3', // yellow
-                            '#ffd6d1', // coral
-                            '#cbe7ff'  // blue
-                          ];
+  const study = $('study');
+  const flashcard = $('flashcard');
+  const cardText = $('card-text');
+  const cardExample = $('card-example');
+  const cardCount = $('card-count');
+  const slider = $('card-slider');
+  const ttsBtn = $('tts-btn');
+  const rating = $('rating');
+  const showAnswerBtn = $('show-answer');
+  const shuffleBtn = $('shuffle');
+  const resetBtn = $('restart');
+  const reverseBtn = $('reverse');
+  const batchActions = $('batch-actions');
+  const repeatBatchBtn = $('repeat-batch');
+  const nextBatchBtn = $('next-batch');
+  const startQuizBtn = $('start-quiz');
+  const exitReviewBtn = $('exit-review');
 
-  const LONG_PRESS_THRESHOLD = 450; // ms
-  let pressStartTime = 0;
-  let longPressTriggered = false;
-  let germanVoice = null;
+  const quizContainer = $('quiz-container');
+  const quizType = $('quiz-type');
+  const quizProgress = $('quiz-progress');
+  const quizQuestion = $('quiz-question');
+  const quizOptions = $('quiz-options');
+  const quizForm = $('quiz-type-form');
+  const quizInput = $('quiz-input');
+  const umlautBar = $('umlaut-bar');
+  const quizFeedback = $('quiz-feedback');
+  const quizNext = $('quiz-next');
+  const quizExit = $('quiz-exit');
+  const quizResult = $('quiz-result');
+  const quizSummary = $('quiz-summary');
+  const quizWrongList = $('quiz-wrong-list');
+  const quizRetry = $('quiz-retry');
 
+  const autoplayBox = $('autoplay');
+  const dailyGoalSel = $('daily-goal');
+  const settingsBox = $('settings');
+  const yearSpan = $('year');
+  const toast = $('toast');
+  const toastText = $('toast-text');
+  const toastUndo = $('toast-undo');
+  const themeSel = $('theme');
 
-  // Define datasets
-  const datasets = {
-    phrases: [
-      { name: "Greetings, small talk, daily expressions", file: basePath + "data/phrases/common_phrases.json" },
-      { name: "Asking directions, transportation", file: basePath + "data/phrases/travel.json" },
-      { name: "Restaurants, stores, prices", file: basePath + "data/phrases/shopping.json" },
-      { name: "Doctor visits, emergencies", file: basePath + "data/phrases/health.json" }
-    ],
-    vocabulary: [
-      { name: "Family members & relationships", file: basePath + "data/vocabulary/family.json" },
-      { name: "Emotions & personality traits", file: basePath + "data/vocabulary/feelings.json" },
-      { name: "Health & body", file: basePath + "data/vocabulary/health_body.json" },
-      { name: "Clothes & describing people", file: basePath + "data/vocabulary/clothing.json" },
-      { name: "Colours, Shapes, and Sizes", file: basePath + "data/vocabulary/colors_shapes_sizes.json" },
-      { name: "Fruits, vegetables, meals, drinks", file: basePath + "data/vocabulary/food_drink.json" },
-      { name: "Household items, rooms, objects", file: basePath + "data/vocabulary/daily_life.json" },
-      { name: "City & nature", file: basePath + "data/vocabulary/places.json" },
-      { name: "Pets, farm, wild", file: basePath + "data/vocabulary/animals.json" },
-      { name: "Modes of transport", file: basePath + "data/vocabulary/transport.json" },
-      { name: "Day, month, weather, seasons", file: basePath + "data/vocabulary/weather_season.json" },
-      { name: "School & Education", file: basePath + "data/vocabulary/school_education.json" },
-      { name: "Jobs & Professions", file: basePath + "data/vocabulary/jobs_professions.json" }
-    ],
-    verbs: [
-      { name: "A1-A2 common verbs", file: basePath + "data/verbs/a12_common_verbs.json" },
-      { name: "B1-B2 common verbs", file: basePath + "data/verbs/b12_common_verbs.json" },
-      { name: "A1-B2 Präteritum – Perfekt (auxiliary verb)", file: basePath + "data/verbs/a1b2_past_perfekt_verbs.json" },
-      { name: "Irregular verbs", file: basePath + "data/verbs/irregularverbs.json" },
-      { name: "Dative verbs", file: basePath + "data/verbs/dative_verbs.json" },   
-      { name: "Reflexive Verbs", file: basePath + "data/verbs/reflexive_verbs.json" },
-      { name: "Modal Verbs", file: basePath + "data/verbs/modal_verbs.json" },
-      { name: "Separable verbs", file: basePath + "data/verbs/separable_verbs.json" },
-      { name: "Verbs mit preposition", file: basePath + "data/verbs/preposition_verbs.json" },
-      { name: "Daily routine verbs", file: basePath + "data/verbs/daily_routine_verbs.json" },
-      { name: "Health and body verbs", file: basePath + "data/verbs/health_body_verbs.json" },
-      { name: "Feelings and states verbs", file: basePath + "data/verbs/feelings_states_verbs.json" },
-      { name: "Movement and travel verbs", file: basePath + "data/verbs/movement_travel_verbs.json" },
-      { name: "Communication and social verbs", file: basePath + "data/verbs/communication_social_verbs.json" },
-      { name: "Work and study verbs", file: basePath + "data/verbs/work_study_verbs.json" },
-      { name: "Shopping and money verbs", file: basePath + "data/verbs/shopping_money_verbs.json" },
-      { name: "Technology and Internet verbs", file: basePath + "data/verbs/technology_internet_verbs.json" },
-      { name: "Problem and solution verbs", file: basePath + "data/verbs/problem_solution_verbs.json" },
-      { name: "Helping and dependence verbs", file: basePath + "data/verbs/helping_dependence_verbs.json" }
-    ],
-    word_relationships: [
-      { name: "Opposite words", file: basePath + "data/word_relationships/antonyms.json" },
-      { name: "Similar words", file: basePath + "data/word_relationships/synonyms.json" },  
-      { name: "Common prepositions", file: basePath + "data/word_relationships/prepositions.json" },
-      { name: "Common adverbs", file: basePath + "data/word_relationships/adverb.json" },   
-      { name: "Word families, compound nouns", file: basePath + "data/word_relationships/compounds.json" },
-      { name: "Verbs to nouns", file: basePath + "data/word_relationships/verbs_nomen.json" },
-      { name: "Prefixed verbs to nouns", file: basePath + "data/word_relationships/prefixed_verbs_nomen.json" },
-      { name: "German collocation", file: basePath + "data/word_relationships/collocation.json" },
-      { name: "Fixed expressions", file: basePath + "data/word_relationships/fixed_expression.json" },
-      { name: "Idiomatic phrases", file: basePath + "data/word_relationships/idioms.json" }
-    ],
-    situations: [
-      { name: "Booking tickets, directions", file: basePath + "data/situations/travel.json" },
-      { name: "Ordering food", file:basePath +  "data/situations/restaurant.json" },   
-      { name: "Office/school terms, phrases", file: basePath + "data/situations/work_school.json" },
-      { name: "Sports, hobbies, leisure", file: basePath + "data/situations/hobbies.json" },
-      { name: "Health, accidents, urgent situations", file: basePath + "data/situations/emergencies.json" }
-    ],
-    challenge: [
-        { name: "Ausspache Herausfordern", file: basePath + "data/challenge/speaking_30_days.json" }
-    ],
-    sicher: {
-      "A2.1": [
-        {name: "Lektion 1 (Ankommen)", file: basePath + "data/sicher/A2_1/a21_lektion1_ankommen.json"},
-        {name: "Lektion 2 (Zu Hause)", file: basePath + "data/sicher/A2_1/a21_lektion2_zuhause.json"},
-        {name: "Lektion 3 (Essen und trinken)", file: basePath + "data/sicher/A2_1/a21_lektion3_essen_und_trinken.json"},
-        {name: "Lektion 4 (Arbeitswelt)", file: basePath + "data/sicher/A2_1/a21_lektion4_arbeitswelt.json"},
-        {name: "Lektion 5 (Sport und Fitness)", file: basePath + "data/sicher/A2_1/a21_lektion5_sport_und_fitness.json"},
-        {name: "Lektion 6 (Ausbildung und Karriere)", file: basePath + "data/sicher/A2_1/a21_lektion6_ausbildung_und_karriere.json"},
-        {name: "Lektion 7 (Feste und Geschenke)", file: basePath + "data/sicher/A2_1/a21_lektion7_Feste_und_geschenke.json"}
-      ],
-      "A2.2": [
-        {name: "Lektion 8 (Am Wochenende)", file: basePath + "data/sicher/A2_2/a22_lektion8_am_wochenende.json"},
-        {name: "Lektion 9 (Meine Sachen)", file: basePath + "data/sicher/A2_2/a22_lektion9_meine_sachen.json"},
-        {name: "Lektion 10 (Kommunikation)", file: basePath + "data/sicher/A2_2/a22_lektion10_kommunikation.json"},
-        {name: "Lektion 11 (Unterwegs)", file: basePath + "data/sicher/A2_2/a22_lektion11_unterwegs.json"},
-        {name: "Lektion 12 (Reisen)", file: basePath + "data/sicher/A2_2/a22_lektion12_reisen.json"},
-        {name: "Lektion 13 (Geld)", file: basePath + "data/sicher/A2_2/a22_lektion13_geld.json"},
-        {name: "Lektion 14 (Lebensstationen)", file: basePath + "data/sicher/A2_2/a22_lektion14_lebensstationen.json"}
-      ],
-      "B1.1": [
-        {name: "Lektion 1 (Glück im Alltag)", file: basePath + "data/sicher/B1_1/b1_lektion1_glück_im_alltag.json"},
-        {name: "Lektion 2 (Unterhaltung)", file: basePath + "data/sicher/B1_1/b1_lektion2_unterhaltung.json"},
-        {name: "Lektion 3 (Gesund bleiben)", file: basePath + "data/sicher/B1_1/b1_lektion3_gesund_bleiben.json"},
-        {name: "Lektion 4 (Sprachen)", file: basePath + "data/sicher/B1_1/b1_lektion4_sprachen.json"},
-        {name: "Lektion 5 (Eine Arbeit finden)", file: basePath + "data/sicher/B1_1/b1_lektion5_eine_arbeit_finden.json"},
-        {name: "Lektion 6 (Dienstleistung)", file: basePath + "data/sicher/B1_1/b1_lektion6_dienstleistung.json"},
-        {name: "Lektion 7 (Rund ums Wohnen)", file: basePath + "data/sicher/B1_1/b1_lektion7_rund_ums_wohnen.json"}
-      ],
-      "B1.2": [
-        {name: "Lektion 8 (Unter Kollegen)", file: basePath + "data/sicher/B1_2/b12_lektion8_unter_kollegen.json"},
-        {name: "Lektion 9 (Virtuelle Welt)", file: basePath + "data/sicher/B1_2/b12_lektion9_virtuelle_welt.json"},
-        {name: "Lektion 10 (Werbung und Konsum)", file: basePath + "data/sicher/B1_2/b12_lektion10_werbung_und_konsum.json"},
-        {name: "Lektion 11 (Miteinander)", file: basePath + "data/sicher/B1_2/b12_lektion11_miteinander.json"},
-        {name: "Lektion 12 (Soziales Engagement)", file: basePath + "data/sicher/B1_2/b12_lektion12_soziales_engagement.json"},
-        {name: "Lektion 13 (Aus Politik und Geschichte)", file: basePath + "data/sicher/B1_2/b12_lektion13_aus_politik_und_geschichte.json"},
-        {name: "Lektion 14 (Alte und neue Heimat)", file: basePath + "data/sicher/B1_2/b12_lektion14_alte_und_neue_heimat.json"}
-      ]
+  /* ---------- Constants ---------- */
+  //const basePath = '';
+  const basePath = 'https://jonnypaemyint.github.io/flashcards/';
+
+  const FIRST_BATCH = 15;     // new cards in batch 0
+  const BATCH_STEP = 10;      // new cards in every later batch
+  const BATCH_SIZE = 15;      // total cards per batch (new + review)
+  const LONG_PRESS_MS = 450;
+  const SWIPE_PX = 50;
+  const REVIEW_LIMIT = 20;
+  const RETRY_GAP = 3;           // an "Again" card returns after this many other cards
+  const DAY = 86400000;
+  const INTERVALS = [0, 0, 1, 3, 7, 14];   // days until due, by Leitner box (1-5)
+
+  const KEYS = {
+    session: 'dl.session',
+    progress: 'dl.progress',
+    stats: 'dl.stats',
+    settings: 'dl.settings'
+  };
+
+  // colours live in CSS (--card-1..4) so they change with the theme
+  const flashcardColors = ['var(--card-1)', 'var(--card-2)', 'var(--card-3)', 'var(--card-4)'];
+
+  /* ---------- Datasets: loaded from data/manifest.json ---------- */
+  let datasets = {};        // category id -> [{name, file}]  or  {group: [{name, file}]}
+  let categoryNames = {};   // category id -> label for the first dropdown
+
+  async function loadManifest() {
+    const res = await fetch(basePath + 'data/manifest.json');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const m = await res.json();
+    const withBase = l => ({ name: l.name, file: basePath + l.file });
+    const ds = {};
+    const names = {};
+    (m.categories || []).forEach(cat => {
+      names[cat.id] = cat.name || cat.id;
+      if (Array.isArray(cat.groups)) {
+        ds[cat.id] = {};
+        cat.groups.forEach(g => { ds[cat.id][g.name] = (g.lessons || []).map(withBase); });
+      } else {
+        ds[cat.id] = (cat.lessons || []).map(withBase);
+      }
+    });
+    if (!Object.keys(ds).length) throw new Error('empty manifest');
+    datasets = ds;
+    categoryNames = names;
+  }
+
+  function fillMainCategories() {
+    mainCategory.innerHTML = '';
+    Object.keys(datasets).forEach(id => {
+      const o = document.createElement('option');
+      o.value = id;
+      o.textContent = categoryNames[id] || id;
+      mainCategory.appendChild(o);
+    });
+  }
+
+  /* ---------- Safe localStorage ---------- */
+  const store = {
+    get(key, fallback) {
+      try {
+        const v = localStorage.getItem(key);
+        return v == null ? fallback : JSON.parse(v);
+      } catch { return fallback; }
+    },
+    set(key, value) {
+      try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* private mode */ }
     }
   };
 
-  // Populate subcategory based on main category with grouped headers
-  function populateSubcategories(category) {
+  /* ---------- State ---------- */
+  let settings = Object.assign(
+    { autoplay: false, reverse: false, quizType: 'choice', dailyGoal: 20, theme: 'auto' },
+    store.get(KEYS.settings, {})
+  );
+  let progress = store.get(KEYS.progress, {}) || {};   // key -> {box, due, seen, reps}
+  let stats = store.get(KEYS.stats, {}) || {};         // {date, today, streak}
+
+  let mode = 'batch';            // 'batch' | 'review'
+  let allCards = [];             // whole deck (or the review list)
+  let cards = [];                // cards of the current batch
+  let indexOrder = [];
+  let currentIndex = 0;
+  let currentBatch = 0;
+  let flipped = false;
+  let revealedCard = null;       // card whose answer was seen: ratings stay until it is rated
+  let undoSnap = null;           // state before the last rating
+  let toastTimer = null;
+  let finished = false;
+  let finishKind = null;         // 'batch' | 'all' | 'review'
+  let finishText = '';
+  let emptyText = 'Loading...';
+  let reverseMode = !!settings.reverse;
+  let shuffled = false;
+  let busy = false;              // true while the slide animation runs
+  let loadToken = 0;             // ignores out-of-date fetches
+  const reviewSeen = new Map();  // card -> last batch it was used as review
+
+  // quiz
+  let quizMode = false;
+  let quizData = [];
+  let quizIndex = 0;
+  let quizStart = 0;
+  let quizAnswered = false;
+
+  /* ---------- Small helpers ---------- */
+  function shuffleInPlace(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  const goal = () => Number(settings.dailyGoal) || 20;
+
+  /* Which side of a card is German? (used by typing quiz + auto-play) */
+  const DE_WORDS = new Set(['ich','du','er','sie','es','wir','ihr','und','ist','nicht','ein','eine','einen','zu','mit','von','den','dem','der','die','das','auf','für','im','bin','bist','sind','haben','habe','wie','wo','wer','kann','möchte','bitte','danke','ja','nein','auch','aber','oder','mein','meine','dein','sich','wird','werden','nach','bei','aus','um']);
+  const EN_WORDS = new Set(['the','to','is','are','and','of','you','he','she','it','we','they','my','your','his','her','i','a','do','does','not','how','what','where','who','can','please','thank','yes','no','at','be','have','has','was']);
+
+  function germanScore(text) {
+    const t = String(text);
+    let sc = (t.match(/[äöüßÄÖÜ]/g) || []).length * 2;
+    for (const w of t.toLowerCase().split(/[^a-zäöüß]+/)) {
+      if (!w) continue;
+      if (DE_WORDS.has(w)) sc += 1;
+      if (EN_WORDS.has(w)) sc -= 1;
+    }
+    if (/^(der|die|das)\s/i.test(t)) sc += 2;
+    if (/^to\s/i.test(t)) sc -= 2;
+    return sc;
+  }
+
+  const looksGerman = text => germanScore(text) > 0;
+
+  // What to read aloud for the card as currently shown
+  function speechTarget(card) {
+    const side = visibleSide();
+    if (side === 'front') return spokenText(card, 'front');            // the German word
+    if (looksGerman(card.back)) return spokenText(card, 'back');       // a German example sentence
+    return reverseMode ? '' : spokenText(card, 'front');               // English shown: read German only once revealed
+  }
+
+  function dayKey(offset = 0) {
+    const d = new Date(Date.now() + offset * DAY);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  const cardKey = c => (c._file || '') + '|' + c.front;
+  const currentCard = () => cards[indexOrder[currentIndex]];
+  const isRevealed = () => !finished && cards.length > 0 && revealedCard === currentCard();
+
+  function visibleSide() {
+    return reverseMode ? (flipped ? 'front' : 'back') : (flipped ? 'back' : 'front');
+  }
+
+  // "der Hund, -e (Tier)" -> "der Hund"; "Ja." -> "Ja"; keeps "z.B." intact
+  function cleanAnswer(str) {
+    str = String(str).split('(')[0];
+    str = str.replace(/,\s*[-–]\S*/g, '');       // plural markers ", -s", ", -e"
+    str = str.split(/\s[-–]\s/)[0];               // " - explanation"
+    return str.replace(/[.!?]+\s*$/, '').trim();
+  }
+
+  // Looser comparison for typing: case, spaces, punctuation, ä/ae, ß/ss
+  function normalize(s) {
+    return String(s).normalize('NFC').toLowerCase()
+      .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+      .replace(/[.,;:!?"'’“”()]/g, '')
+      .replace(/\s+/g, ' ').trim();
+  }
+
+  const lowSpaces = s => String(s).toLowerCase().replace(/\s+/g, ' ').trim();
+
+  function notice(msg) {
+    noticeEl.textContent = msg;
+    clearTimeout(notice.t);
+    notice.t = setTimeout(() => { noticeEl.textContent = ''; }, 4000);
+  }
+
+  // Writes text; colours a leading der/die/das for noun-like entries
+  function renderText(target, text) {
+    text = String(text);
+    target.textContent = '';
+    const m = /^(der|die|das)\s+([\s\S]+)$/i.exec(text);
+    const head = text.split(/[,(\n]/)[0].trim();
+    const nounLike = m && head.split(/\s+/).length <= 3 && !/[.!?]$/.test(head);
+    if (nounLike) {
+      const span = document.createElement('span');
+      span.className = 'article ' + m[1].toLowerCase();
+      span.textContent = m[1];
+      target.append(span, ' ' + m[2]);
+    } else {
+      target.textContent = text;
+    }
+  }
+
+  /* ---------- Progress (Leitner boxes) ---------- */
+  function applyRating(card, r) {          // r: 1 Again, 2 Hard, 3 Good, 4 Easy
+    const now = Date.now();
+    const k = cardKey(card);
+    const p = progress[k] || { box: 0, due: 0, seen: 0, reps: 0 };
+    const base = p.box || 1;
+    let box;
+    if (r === 1) box = 1;
+    else if (r === 2) box = base;
+    else if (r === 3) box = Math.min(5, base + 1);
+    else box = Math.min(5, base + 2);
+    const days = INTERVALS[box] * (r === 2 ? 0.5 : 1);
+    progress[k] = { box, due: now + days * DAY, seen: now, reps: (p.reps || 0) + 1 };
+    store.set(KEYS.progress, progress);
+  }
+
+  function bumpStats() {
+    const t = dayKey();
+    if (stats.date !== t) {
+      stats.streak = stats.date === dayKey(-1) ? (stats.streak || 0) + 1 : 1;
+      stats.date = t;
+      stats.today = 0;
+    }
+    stats.today = (stats.today || 0) + 1;
+    store.set(KEYS.stats, stats);
+    if (stats.today === goal()) {
+      notice('Daily goal reached! 🎉');
+      confettiBurst();
+    }
+  }
+
+  function renderStats() {
+    const t = dayKey();
+    const today = stats.date === t ? stats.today || 0 : 0;
+    const streak = stats.date === t || stats.date === dayKey(-1) ? stats.streak || 0 : 0;
+    const now = Date.now();
+    let learned = 0;
+    for (const c of allCards) {
+      const p = progress[cardKey(c)];
+      if (p && p.box >= 4) learned++;
+    }
+    let text = `Today ${today}/${goal()} · 🔥 ${streak}`;
+    if (mode === 'review') text = 'Session · ' + text;
+    else text += ` · Learned ${learned}/${allCards.length}`;
+    statsEl.textContent = text;
+
+    // Pill: "Study today" = due cards (all decks) + new cards from this deck, up to what is left of the goal.
+    // Once the goal is met it becomes "Review N" (due cards only); with nothing to do it is hidden.
+    const left = Math.max(goal() - today, 0);
+    const totalDue = dueCount();
+    const available = totalDue + newCardsInDeck().length;
+    if (mode === 'review') {
+      reviewDueBtn.hidden = false;
+      reviewDueBtn.textContent = 'Exit session';
+    } else if (left > 0 && available > 0) {
+      reviewDueBtn.hidden = false;
+      reviewDueBtn.textContent = `Study today · ${Math.min(left, available)}`;
+    } else if (totalDue > 0) {
+      reviewDueBtn.hidden = false;
+      reviewDueBtn.textContent = `Review ${totalDue}`;
+    } else {
+      reviewDueBtn.hidden = true;
+    }
+  }
+
+  /* ---------- Dropdowns ---------- */
+  function populateSubcategories(category, preferredFile) {
     subCategory.innerHTML = '';
-
-    if (!datasets[category]) return;
-
     const ds = datasets[category];
+    if (!ds) return;
+
+    const add = (parent, item) => {
+      const o = document.createElement('option');
+      o.value = item.file;
+      o.textContent = item.name;
+      parent.appendChild(o);
+    };
 
     if (Array.isArray(ds)) {
-
-      // Normal flat datasets
-      ds.forEach((item, index) => {
-        const option = document.createElement('option');
-        option.value = item.file;
-        option.textContent = item.name;
-        if (index === 0) option.selected = true;
-        subCategory.appendChild(option);
-      });
-
+      ds.forEach(item => add(subCategory, item));
     } else {
-
-      // Grouped dataset (like 'sicher')
-      Object.keys(ds).forEach(groupName => {
-        // Add a non-selectable group header with arrow
-        const headerOption = document.createElement('option');
-        headerOption.textContent = `▶ ${groupName}`; // arrow to indicate group
-        headerOption.disabled = true;
-        headerOption.style.fontWeight = 'bold';
-        headerOption.style.backgroundColor = '#f0f0f0';
-        headerOption.style.color = '#333';
-        subCategory.appendChild(headerOption);
-
-        // Add items under the header
-        ds[groupName].forEach(item => {
-          const option = document.createElement('option');
-          option.value = item.file;
-          option.textContent = `   ${item.name}`; // indent for readability
-          subCategory.appendChild(option);
-        });
+      Object.keys(ds).forEach(group => {
+        const og = document.createElement('optgroup');
+        og.label = group;
+        ds[group].forEach(item => add(og, item));
+        subCategory.appendChild(og);
       });
-
     }
 
-    // Automatically select and load the first selectable item
-    const firstSelectable = Array.from(subCategory.options).find(opt => !opt.disabled);
-
-    if (firstSelectable) {
-      firstSelectable.selected = true;
-      loadCards(firstSelectable.value);
-    }
-    
+    const opts = Array.from(subCategory.options);
+    const pick = opts.find(o => o.value === preferredFile) || opts[0];
+    if (pick) pick.selected = true;
   }
 
   mainCategory.addEventListener('change', () => {
+    leaveQuizUI();
     populateSubcategories(mainCategory.value);
-    saveState();
+    loadCards(subCategory.value);
   });
 
   subCategory.addEventListener('change', () => {
+    leaveQuizUI();
     if (subCategory.value) loadCards(subCategory.value);
-    saveState();
   });
 
-  // Set default main category to "phrases"
-  //mainCategory.value = 'phrases';
-  //populateSubcategories('phrases');
-
-  loadSavedState();
-
-  // load flasch cards
-  async function loadCards(file) {
-    flashcard.textContent = 'Loading...';
+  /* ---------- Loading & batches ---------- */
+  async function loadCards(file, restore) {
+    const token = ++loadToken;
+    mode = 'batch';
+    leaveFinished();
+    reviewSeen.clear();
+    allCards = [];
+    cards = [];
+    indexOrder = [];
+    emptyText = 'Loading...';
+    renderCard();
 
     try {
       const res = await fetch(file);
-      allCards = await res.json();
-
-      batchIndex = 0; // reset batch index
-      previousCards = []; // rest previous card
-
-      totalBatches = Math.ceil(allCards.length / batchSize);
-      
-      loadBatch(batchIndex); // load first batch
-
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      if (token !== loadToken) return;          // a newer load replaced this one
+      allCards = (Array.isArray(data) ? data : [])
+        .filter(c => c && c.front != null && c.back != null)
+        .map(c => { c.front = String(c.front); c.back = String(c.back); c._file = file; return c; });
     } catch (err) {
-      flashcard.textContent = 'Failed to load flashcards.';
-    }
-
-    if (quizMode == true) startQuizMode();
-  }
-
-  function loadBatch(index, isRepeat = false) {
-    if (!allCards.length) return;
-
-    const freshCount = index === 0 ? 15 : 10;
-
-    let newCards;
-
-    if (isRepeat && lastLoadedNewCards.length && index === currentBatch) {
-      // Reload previous fresh cards
-      newCards = lastLoadedNewCards.slice();
-      newCards.forEach(card => card.isOld = false);
-    } else {
-      const start = previousCards.length;
-      const end = Math.min(start + freshCount, allCards.length);
-      newCards = allCards.slice(start, end);
-      newCards.forEach(card => card.isOld = false);
-
-      // Store for repeat button
-      lastLoadedNewCards = newCards.slice();
-    }
-
-    let reviewCards = [];
-
-    if (index > 0) {
-      const usedSet = new Set(newCards);
-      const eligibleReview = previousCards.filter(c => !usedSet.has(c));
-
-      // Sort by least recently reviewed
-      eligibleReview.sort((a, b) => {
-        const lastA = reviewHistory.get(a) ?? -1;
-        const lastB = reviewHistory.get(b) ?? -1;
-        return lastA - lastB;
-      });
-
-      // Fill the batch to make batchSize
-      const needed = batchSize - newCards.length;
-      reviewCards = eligibleReview.slice(0, needed);
-      reviewCards.forEach(card => reviewHistory.set(card, index));
-      reviewCards.forEach(card => card.isOld = true);
-    }
-
-    // Final batch to display
-    cards = [...newCards, ...reviewCards];
-
-    // Only count fresh cards for previousCards
-    if (!isRepeat) previousCards.push(...newCards);
-
-    // Reset deck/UI
-    resetDeckOriginal();
-    nextBatchBtn.style.display = "none";
-    repeatBatchBtn.style.display = "none";
-    flashCardButtons.style.display = "flex";
-
-    //console.log("Batch:", index, 
-    //            "New:", newCards.length, 
-    //            "Review:", reviewCards.length, 
-    //            "Final:", cards.length);
-}
-
-  function getUniqueReviewCards(previousCards, excludeCards, count = 5) {
-    // Filter out cards already in the current batch
-    const pool = previousCards.filter(card => !excludeCards.includes(card));
-
-    // Use a Set to make sure we only get unique cards
-    const uniquePool = Array.from(new Set(pool));
-
-    // Shuffle the unique pool
-    shuffleArray(uniquePool);
-
-    // Return only the requested number of review cards
-    return uniquePool.slice(0, Math.min(count, uniquePool.length));
-}
-
-  function returnShuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
-    }
-
-    return array;
-  }
-
-  function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
-    }
-  }
-
-  function resetDeckOriginal() {
-    indexOrder = cards.map((_, i) => i);
-    restFlashCards();
-    showCard();
-    changeFlashcardColour();
-  }
-
-  function resetDeckShuffled() {
-    indexOrder = cards.map((_, i) => i);
-    shuffleArray(indexOrder);
-    restFlashCards();
-    showCard();
-    changeFlashcardColour();
-  }
-
-  nextBatchBtn.addEventListener("click", () => {
-      currentBatch++;
-      loadBatch(currentBatch);
-      nextBatchBtn.style.display = "none";
-      repeatBatchBtn.style.display = "none";
-      saveState();
-  });
-
-  repeatBatchBtn.addEventListener("click", () => {
-    loadBatch(currentBatch, true); // reload same batch
-    nextBatchBtn.style.display = "none";
-    repeatBatchBtn.style.display = "none";
-    saveState();
-  });
-
-  reverseBtn.addEventListener('click', () => {
-    reverseMode = !reverseMode;   // toggle reverse mode
-    flipped = false;              // reset flip state
-    finished = false
-    showCard();
-    saveState();
-
-    // toggle visual style
-    if (reverseMode) {
-      reverseBtn.classList.add('active-reverse');
-    } else {
-      reverseBtn.classList.remove('active-reverse');
-    }
-  });
-
-  function showCard() {
-    if (!cards.length) {
-      flashcard.textContent = 'No flashcards available.';
+      if (token !== loadToken) return;
+      emptyText = 'Failed to load flashcards.';
+      renderCard();
+      renderStats();
       return;
     }
 
-    const card = cards[indexOrder[currentIndex]];
+    if (!allCards.length) emptyText = 'No flashcards available.';
 
-    let content = reverseMode
-        ? (flipped ? card.front : card.back)
-        : (flipped ? card.back : card.front);
+    const useRestore = restore && restore.sub === file;
+    loadBatch(useRestore ? restore.batch | 0 : 0);
+    if (useRestore) applyRestore(restore);
 
-    if (card.isOld) {
-      flashcard.classList.add('old-card');
-    }else{
-      flashcard.classList.remove('old-card');
-    }
-
-    flashcard.textContent = content;
-
-    // Handle flip display
-    if (flipped) {
-      flashcard.classList.add('flipped');
-    } else {
-      flashcard.classList.remove('flipped');
-    }
-
-    cardCount.textContent = (currentIndex + 1) + "/" + cards.length;
-
-    slider.max = cards.length - 1;
-    slider.value = currentIndex;
-
-    if (!finished) startQuizBtn.style.display = "none";
-
-    // Visual hint (only on first card, front side)
-    if (!finished && !flipped && cards.length) {
-      flashcard.setAttribute("data-hint", "Tap to flip • Hold to hear");
-      ttsBtn.classList.remove("hidden");
-    } else {
-      flashcard.removeAttribute("data-hint");
-      ttsBtn.classList.add("hidden");
-    }
-
+    renderStats();
+    renderCard();
+    saveSession();
   }
 
-  slider.addEventListener('input', (e) => {
-    currentIndex = parseInt(e.target.value);
+  const lastBatchIndex = () =>
+    allCards.length <= FIRST_BATCH ? 0 : Math.ceil((allCards.length - FIRST_BATCH) / BATCH_STEP);
+
+  function freshRange(i) {
+    const start = i === 0 ? 0 : FIRST_BATCH + BATCH_STEP * (i - 1);
+    const size = i === 0 ? FIRST_BATCH : BATCH_STEP;
+    return [start, Math.min(start + size, allCards.length)];
+  }
+
+  function loadBatch(index) {
+    if (!allCards.length) { setDeck([]); return; }
+    index = Math.max(0, Math.min(index, lastBatchIndex()));
+    currentBatch = index;
+
+    const [start, end] = freshRange(index);
+    const fresh = allCards.slice(start, end);
+    fresh.forEach(c => { c.isOld = false; });
+
+    let review = [];
+    if (index > 0) {
+      const now = Date.now();
+      const dueOf = c => { const p = progress[cardKey(c)]; return p ? p.due : now; };
+      const pool = allCards.slice(0, start);
+      // most overdue first (Again/Hard cards), then least recently used as review
+      pool.sort((a, b) =>
+        (dueOf(a) - dueOf(b)) ||
+        ((reviewSeen.get(a) ?? -1) - (reviewSeen.get(b) ?? -1)));
+      review = pool.slice(0, Math.max(0, BATCH_SIZE - fresh.length));
+      review.forEach(c => { c.isOld = true; reviewSeen.set(c, index); });
+    }
+
+    setDeck([...fresh, ...review]);
+  }
+
+  function setDeck(list) {
+    cards = list;
+    indexOrder = cards.map((_, i) => i);
+    shuffled = false;
+    currentIndex = 0;
     flipped = false;
-    showCard();
-    saveState();
-  });
-
-
-  // -----------------------
-  // LONG PRESS TO SPEAK + TAP TO FLIP
-  // -----------------------
-  // Preload voices to make sure iOS has them ready
-  function loadGermanVoice() {
-    const voices = speechSynthesis.getVoices();
-    germanVoice =
-      voices.find(v => v.lang === "de-DE" && v.name.toLowerCase().includes("google")) ||
-      voices.find(v => v.lang === "de-DE") ||
-      voices.find(v => v.lang.startsWith("de")) ||
-      null;
+    leaveFinished();
+    changeFlashcardColour();
+    syncToggleButtons();
   }
 
-  speechSynthesis.onvoiceschanged = loadGermanVoice;
-  loadGermanVoice();
-
-  function speakGerman(text) {
-    if (!text || !germanVoice) return;
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "de-DE";
-    utterance.rate = 0.9;
-    utterance.voice = germanVoice;
-
-    // Disable button while speaking
-    if (ttsBtn) {
-      utterance.onstart = () => ttsBtn.disabled = true;
-      utterance.onend = () => ttsBtn.disabled = false;
-      utterance.onerror = () => ttsBtn.disabled = false;
+  function applyRestore(s) {
+    if (Array.isArray(s.order) && s.order.length >= cards.length && s.order.length <= cards.length * 2 &&
+        s.order.every(i => Number.isInteger(i) && i >= 0 && i < cards.length)) {
+      indexOrder = s.order.slice();
+      shuffled = !!s.shuffled;
     }
-
-    speechSynthesis.speak(utterance);
+    currentIndex = Math.min(Math.max(s.index | 0, 0), Math.max(indexOrder.length - 1, 0));
+    syncToggleButtons();
   }
 
-  // Ensure smooth touch on mobile
-  flashcard.style.touchAction = "auto";
-  flashcard.style.userSelect = "none";
+  function leaveFinished() {
+    finished = false;
+    revealedCard = null;
+    clearUndo();
+    finishKind = null;
+    finishText = '';
+  }
 
-  flashcard.addEventListener("pointerdown", () => {
-    if (finished) return;
+  function syncToggleButtons() {
+    shuffleBtn.classList.toggle('active-shuffle', shuffled);
+    reverseBtn.checked = reverseMode;
+  }
 
-    pressStartTime = Date.now();
-    longPressTriggered = false;
-
-    // Use requestAnimationFrame to ensure iOS treats it as direct user gesture
-    requestAnimationFrame(() => {
-      const checkLongPress = () => {
-        const card = cards[indexOrder[currentIndex]];
-        const textToSpeak = flashcard.classList.contains("flipped")
-          ? stripAfterDashOrParen(card.back)
-          : stripAfterDashOrParen(card.front);
-
-        const duration = Date.now() - pressStartTime;
-
-        if (duration >= LONG_PRESS_THRESHOLD && !longPressTriggered) {
-          longPressTriggered = true;
-          speechSynthesis.cancel(); // cancel any previous speech
-          speakGerman(textToSpeak);
-        }
-
-        // Continue checking until pointerup
-        if (!longPressTriggered) requestAnimationFrame(checkLongPress);
-      };
-      requestAnimationFrame(checkLongPress);
+  function saveSession() {
+    if (mode !== 'batch' || !allCards.length) return;
+    store.set(KEYS.session, {
+      main: mainCategory.value,
+      sub: subCategory.value,
+      batch: currentBatch,
+      index: currentIndex,
+      shuffled,
+      order: indexOrder
     });
-  });
+  }
 
-  flashcard.addEventListener("pointerup", () => {
-    if (finished) return;
+  function legacySession() {
+    try {
+      const main = localStorage.getItem('mainCategory');
+      const sub = localStorage.getItem('subCategory');
+      if (main && datasets[main]) return { main, sub, batch: 0, index: 0 };
+    } catch { /* ignore */ }
+    return null;
+  }
 
-    const pressDuration = Date.now() - pressStartTime;
+  /* ---------- Rendering ---------- */
+  function changeFlashcardColour() {
+    const color = flashcardColors[Math.floor(Math.random() * flashcardColors.length)];
+    flashcard.style.setProperty('--card-bg', color);
+  }
 
-    // Short tap → flip card
-    if (pressDuration < LONG_PRESS_THRESHOLD) {
-      flipped = !flipped;
-      showCard();
+  /* Shrink the font until the text fits inside the card */
+  const FIT_MAX = 30;
+  const FIT_MIN = 13;
+
+  function fitText() {
+    if (!flashcard.clientHeight) return;               // study view is hidden
+    const cs = getComputedStyle(flashcard);
+    const availH = flashcard.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    const availW = flashcard.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const gap = parseFloat(cs.rowGap) || 0;
+    const tooBig = () =>
+      cardText.offsetHeight + (cardExample.hidden ? 0 : cardExample.offsetHeight + gap) > availH ||
+      cardText.offsetWidth > availW;
+
+    flashcard.style.fontSize = FIT_MAX + 'px';
+    let size = FIT_MAX;
+    while (size > FIT_MIN && tooBig()) {
+      size--;
+      flashcard.style.fontSize = size + 'px';
+    }
+  }
+
+  function renderCard() {
+    renderCardCore();
+    fitText();
+  }
+
+  function renderCardCore() {
+    const has = cards.length > 0;
+
+    if (!has) {
+      cardText.textContent = emptyText;
+      cardExample.hidden = true;
+      cardExample.textContent = '';
+      flashcard.classList.remove('flipped', 'old-card');
+      flashcard.removeAttribute('data-hint');
+      ttsBtn.classList.add('hidden');
+      rating.hidden = true;
+      showAnswerBtn.hidden = true;
+      batchActions.hidden = true;
+      cardCount.textContent = '0/0';
+      slider.max = 0;
+      slider.value = 0;
+      return;
     }
 
-    // Stop any ongoing long press check
-    longPressTriggered = true;
-  });
+    const card = currentCard();
+    flashcard.classList.toggle('old-card', !!card.isOld && !finished);
+    flashcard.classList.toggle('flipped', flipped && !finished);
 
-  flashcard.addEventListener("pointerleave", () => {
-    // cancel speech if finger moves out
-    if (speechSynthesis.speaking) {
-      speechSynthesis.cancel();
-    }
-    longPressTriggered = true;
-  });
-
-  // audio click
-  ttsBtn.addEventListener("click", () => {
-    if (!cards.length) return;
-
-    const card = cards[indexOrder[currentIndex]];
-    const textToSpeak = flashcard.classList.contains("flipped")
-      ? stripAfterDashOrParen(card.back)
-      : stripAfterDashOrParen(card.front);
-
-    speechSynthesis.cancel();
-    speakGerman(textToSpeak);
-  });
-
-  preventDoubleClick(nextBtn, () => {
-    if (currentIndex < cards.length - 1) {
-        slideCard("next", () => {
-          currentIndex = (currentIndex + 1) % cards.length;
-          flipped = false;
-          showCard();
-          changeFlashcardColour();
-          saveState();
-      });
-
+    if (finished) {
+      cardText.textContent = finishText;
+      cardExample.hidden = true;
+      cardExample.textContent = '';
+      flashcard.removeAttribute('data-hint');
     } else {
-      flipped = false;
-      finished = true;
-      showCard();
-
-      const totalCards = allCards.length;
-      const cardsSeen = previousCards.length;
-
-      if(cardsSeen < totalCards) {
-        flashcard.textContent = `Great! Batch ${currentBatch + 1} completed.\n\nClick "Next" to continue or "Repeat" to practise more.\n\nSome old cards will reappear to help you remember.`;
-        nextBatchBtn.style.display = "block";
-        repeatBatchBtn.style.display = "block";
-        flashCardButtons.style.display = "none";
-        startQuizBtn.style.display = "none";
-
-        celebrateBatchCompletion();
-        return;
-      }
-
-      let quizInfo = 'You’ve completed all the flashcards.\n\nClick "Start Quiz" to test how much you’ve remembered.';
-      if (currentBatch >= 0) {
-         quizInfo = quizInfo.replace(/\./g,"") + ' or "Repeat" to practise more.';
-         repeatBatchBtn.style.display = "block";
-      }
-
-      nextBatchBtn.style.display = "none";
-      flashcard.textContent = quizInfo;
-      flashCardButtons.style.display = "none";
-      startQuizBtn.style.display = "block";
-
-      celebrateBatchCompletion();
+      renderText(cardText, card[visibleSide()]);
+      const showExample = flipped && card.example;
+      cardExample.textContent = showExample ? String(card.example) : '';
+      cardExample.hidden = !showExample;
+      flashcard.setAttribute('data-hint', isRevealed() ? 'Rate to continue • swipe to skip' : 'Hold to hear • Swipe to move');
     }
 
-    saveState();
-  });
+    ttsBtn.classList.toggle('hidden', finished);
+    rating.hidden = !isRevealed();
 
-  function celebrateBatchCompletion() {
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 }
-    });
+    showAnswerBtn.hidden = finished || isRevealed();   // the rating buttons take this spot once revealed
+    batchActions.hidden = !finished;
+    repeatBatchBtn.hidden = !(finishKind === 'batch' || finishKind === 'all');
+    nextBatchBtn.hidden = finishKind !== 'batch';
+    startQuizBtn.hidden = finishKind !== 'all';
+    exitReviewBtn.hidden = finishKind !== 'review';
 
-    flashcard.textContent += "\n\n🎉 Well done! 🎉";
 
-    flashcard.classList.add("celebrate");
-    setTimeout(() => {
-      flashcard.classList.remove("celebrate");
-    }, 500);
+    cardCount.textContent = (currentIndex + 1) + '/' + indexOrder.length;
+    slider.max = indexOrder.length - 1;
+    slider.value = currentIndex;
   }
 
-  preventDoubleClick(prevBtn, () => {
-    if (currentIndex > 0) {
+  /* ---------- Navigation ---------- */
+  // After a slide the next card should appear un-flipped at once,
+  // not spin back through the 3D flip transition.
+  function renderCardInstant() {
+    revealedCard = null;
+    flashcard.style.transition = 'none';
+    renderCard();
+    void flashcard.offsetWidth;            // commit the un-animated state
+    flashcard.style.transition = '';
+  }
 
-      slideCard("prev", () => {
-        if (finished) {
-          currentIndex = cards.length - 1;
-          finished = false;
-        } else {
-          currentIndex = (currentIndex - 1 + cards.length) % cards.length;
-        }
-
-        flipped = false;
-        showCard();
-        changeFlashcardColour();
-        saveState();
-      });
-
-    }
-  });
-
-  
-  flipBtn.onclick = () => { flipped = !flipped; showCard(); };
-  shuffleBtn.onclick = resetDeckShuffled;
-  resetBtn.onclick = resetDeckOriginal;
-
-  function preventDoubleClick(button, callback, delay = 500) {
-    let clickable = true;
-    button.addEventListener('click', () => {
-      if (!clickable) return;
-      clickable = false;
+  function slide(direction, callback) {
+    if (busy) return;
+    busy = true;
+    const cls = direction === 'next' ? 'slide-left' : 'slide-right';
+    flashcard.classList.add(cls);
+    ttsBtn.classList.add('hidden');
+    stopSpeaking();
+    setTimeout(() => {
+      flashcard.classList.remove(cls);
+      busy = false;
       callback();
-      setTimeout(() => { clickable = true; }, delay);
-    });
-  }
-
-  [nextBtn, prevBtn, shuffleBtn, resetBtn].forEach(btn => {
-    preventDoubleClick(btn, () => btn.click());
-  });
-
-  //copyright year
-  yearSpan.textContent = today.getFullYear();
-
-
-  function stripAfterDashOrParen(str) {
-    // Remove anything after "("
-    str = str.split("(")[0].trim();
-
-    // Remove plural markers like ", -s", ", -e", ", -en"
-    str = str.replace(/,\s*-\w+/g, "").trim();
-
-    // Remove hyphen only when followed by a space "- "
-    if (str.includes("- ")) {
-        str = str.split("- ")[0].trim();
-    }
-
-    // Remove dot and everything after it
-    if (str.includes(".")) {
-        str = str.split(".")[0].trim();
-    }
-
-    return str;
-  }
-
-  function slideCard(direction, callback) {
-    const className = direction === "next" ? "slide-left" : "slide-right";
-
-    flashcard.classList.add(className);
-    ttsBtn.classList.add("hidden");
-
-    setTimeout(() => {
-      flashcard.classList.remove(className);
-      ttsBtn.classList.remove("hidden");
-      callback();                 // update card data AFTER slide
     }, 350);
   }
 
-  function changeFlashcardColour() {
-    const color = flashcardColors[Math.floor(Math.random() * flashcardColors.length)];
-    flashcard.style.setProperty("--card-bg", color);
+  function goNext() {
+    if (busy || finished || !cards.length) return;
+    if (currentIndex < indexOrder.length - 1) {
+      slide('next', () => {
+        currentIndex++;
+        flipped = false;
+        changeFlashcardColour();
+        renderCardInstant();
+        saveSession();
+        maybeAutoplay();
+      });
+    } else {
+      finishDeck();
+    }
   }
 
-  // -----------------------
-  // QUIZ MODE
-  // -----------------------
-
-  const quizContainer = document.getElementById("quiz-container");
-  const startQuizBtn = document.getElementById("start-quiz");
-  const quizQuestion = document.getElementById("quiz-question");
-  const quizOptions = document.getElementById("quiz-options");
-  const quizNext = document.getElementById("quiz-next");
-  const quizExit = document.getElementById("quiz-exit");
-  const quizProgress = document.getElementById("quiz-progress");
-  //const quizButton = document.querySelector(".quiz-button");
-  
-  let quizData = [];
-  let quizIndex = 0;
-  let quizStartTime;
-
-  // Add a flag to prevent multiple rapid clicks
-  let quizProcessing = false;
-
-  quizExit.disabled = true;
-
-  // Load quiz data from current flashcards
-  function loadQuizData() {
-    quizData = allCards.map(card => ({
-      question: card.front,
-      answer: card.back
-    }));
-    shuffleArray(quizData);
+  function goPrev() {
+    if (busy || !cards.length) return;
+    if (finished) {
+      leaveFinished();
+      currentIndex = indexOrder.length - 1;
+      flipped = false;
+      renderCard();
+      saveSession();
+      return;
+    }
+    if (currentIndex > 0) {
+      slide('prev', () => {
+        currentIndex--;
+        flipped = false;
+        changeFlashcardColour();
+        renderCardInstant();
+        saveSession();
+        maybeAutoplay();
+      });
+    }
   }
 
-  // Start quiz mode
-  startQuizBtn.addEventListener("click", () => {
-    quizStartTime = Date.now(); // start the total quiz timer
-    startQuizMode();
+  let flipTimer = null;
+  function flipCard() {
+    if (finished || !cards.length) return;
+    flipped = !flipped;
+    if (flipped) revealedCard = currentCard();
+    flashcard.classList.toggle('flipped', flipped);
+    clearTimeout(flipTimer);
+    flipTimer = setTimeout(renderCard, 180);      // swap text while the card is edge-on
+    maybeAutoplay();
+  }
+
+  function finishDeck() {
+    flipped = false;
+    finished = true;
+
+    if (mode === 'review') {
+      finishKind = 'review';
+      finishText = 'Session complete!\n\nCards you rated Again or Hard will come back sooner.\n\n🎉 Well done! 🎉';
+    } else {
+      const [, end] = freshRange(currentBatch);
+      if (end < allCards.length) {
+        finishKind = 'batch';
+        finishText = `Great! Batch ${currentBatch + 1} completed.\n\nClick "Next batch" to continue or "Repeat" to practise more.\n\nSome old cards will reappear to help you remember.\n\n🎉 Well done! 🎉`;
+      } else {
+        finishKind = 'all';
+        finishText = 'You’ve completed all the flashcards.\n\nClick "Start Quiz" to test how much you’ve remembered or "Repeat" to practise more.\n\n🎉 Well done! 🎉';
+      }
+    }
+
+    renderCard();
+    renderStats();
+    confettiBurst();
+    flashcard.classList.add('celebrate');
+    setTimeout(() => flashcard.classList.remove('celebrate'), 500);
+    saveSession();
+  }
+
+  function confettiBurst() {
+    if (typeof confetti === 'function') {
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+    }
+  }
+
+  function rate(r) {
+    if (busy || finished || !cards.length || !isRevealed()) return;
+    const card = currentCard();
+    const k = cardKey(card);
+    undoSnap = {
+      card, k,
+      prev: progress[k] ? { ...progress[k] } : null,
+      stats: { ...stats },
+      order: indexOrder.slice(),
+      index: currentIndex
+    };
+    applyRating(card, r);
+    bumpStats();
+
+    // Again: bring the card back a few cards later (once) for another try now
+    if (r === 1) {
+      const idx = indexOrder[currentIndex];
+      if (indexOrder.indexOf(idx, currentIndex + 1) === -1) {
+        indexOrder.splice(Math.min(indexOrder.length, currentIndex + 1 + RETRY_GAP), 0, idx);
+      }
+    }
+
+    renderStats();
+    showToast(r === 1 ? 'Again · back in a few cards' : 'Rated ' + ['Again', 'Hard', 'Good', 'Easy'][r - 1]);
+    goNext();
+  }
+
+  /* ---------- Undo the last rating ---------- */
+  function showToast(text) {
+    toastText.textContent = text;
+    toast.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(clearUndo, 5000);
+  }
+
+  function clearUndo() {
+    undoSnap = null;
+    clearTimeout(toastTimer);
+    toast.hidden = true;
+  }
+
+  function undoRating() {
+    const s = undoSnap;
+    if (!s || busy) return;
+    clearUndo();
+    leaveFinished();
+    if (s.prev) progress[s.k] = s.prev; else delete progress[s.k];
+    store.set(KEYS.progress, progress);
+    stats = s.stats;
+    store.set(KEYS.stats, stats);
+    indexOrder = s.order;
+    currentIndex = s.index;
+    flipped = true;
+    revealedCard = s.card;          // back on the rated card, answer showing, ratings available
+    renderCard();
+    renderStats();
+    saveSession();
+  }
+
+  toastUndo.addEventListener('click', undoRating);
+
+  /* ---------- Buttons ---------- */
+  showAnswerBtn.addEventListener('click', flipCard);
+
+  rating.addEventListener('click', e => {
+    const b = e.target.closest('button[data-rate]');
+    if (b) rate(Number(b.dataset.rate));
   });
 
-  // Display question + options
+  shuffleBtn.addEventListener('click', () => {
+    if (!cards.length) return;
+    leaveFinished();
+    indexOrder = shuffleInPlace(cards.map((_, i) => i));
+    shuffled = true;
+    currentIndex = 0;
+    flipped = false;
+    changeFlashcardColour();
+    syncToggleButtons();
+    renderCard();
+    saveSession();
+  });
+
+  resetBtn.addEventListener('click', () => {
+    if (!cards.length) return;
+    leaveFinished();
+    indexOrder = cards.map((_, i) => i);
+    shuffled = false;
+    currentIndex = 0;
+    flipped = false;
+    changeFlashcardColour();
+    syncToggleButtons();
+    renderCard();
+    saveSession();
+  });
+
+  reverseBtn.addEventListener('click', () => {
+    reverseMode = !reverseMode;
+    settings.reverse = reverseMode;
+    store.set(KEYS.settings, settings);
+    flipped = false;
+    revealedCard = null;
+    syncToggleButtons();
+    renderCard();
+    settingsDone(reverseMode ? 'Reverse on: answers come first' : 'Reverse off');
+  });
+
+  nextBatchBtn.addEventListener('click', () => {
+    loadBatch(currentBatch + 1);
+    renderCard();
+    saveSession();
+  });
+
+  repeatBatchBtn.addEventListener('click', () => {
+    loadBatch(currentBatch);
+    renderCard();
+    saveSession();
+  });
+
+  startQuizBtn.addEventListener('click', () => startQuiz());
+
+  exitReviewBtn.addEventListener('click', () => {
+    loadCards(subCategory.value, store.get(KEYS.session, null));
+  });
+
+  slider.addEventListener('input', e => {
+    currentIndex = Number(e.target.value);
+    flipped = false;
+    leaveFinished();
+    renderCard();
+    saveSession();
+  });
+
+  autoplayBox.addEventListener('change', () => {
+    settings.autoplay = autoplayBox.checked;
+    store.set(KEYS.settings, settings);
+  });
+
+  reviewDueBtn.addEventListener('click', () => (mode === 'review' ? exitReviewBtn.click() : startSession()));
+
+  /* ---------- Speech ---------- */
+  const hasSpeech = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+
+  function pickVoice() {
+    const voices = speechSynthesis.getVoices();
+    return voices.find(v => v.lang === 'de-DE' && /google/i.test(v.name)) ||
+           voices.find(v => v.lang === 'de-DE') ||
+           voices.find(v => v.lang && v.lang.startsWith('de')) ||
+           null;
+  }
+
+  function stopSpeaking() {
+    if (hasSpeech) speechSynthesis.cancel();
+    ttsBtn.classList.remove('speaking');
+  }
+
+  function speak(text) {
+    if (!hasSpeech || !text) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'de-DE';
+    u.rate = 0.9;
+    const voice = pickVoice();
+    if (voice) u.voice = voice;           // without a voice the browser still uses lang
+    u.onstart = () => ttsBtn.classList.add('speaking');
+    u.onend = u.onerror = () => ttsBtn.classList.remove('speaking');
+    speechSynthesis.speak(u);
+  }
+
+  // Optional JSON fields ttsFront / ttsBack override what is spoken.
+  function spokenText(card, side) {
+    const override = card[side === 'front' ? 'ttsFront' : 'ttsBack'];
+    return override ? String(override) : cleanAnswer(card[side]);
+  }
+
+  function speakCurrent() {
+    if (finished || !cards.length) return;
+    speak(speechTarget(currentCard()));
+  }
+
+  function maybeAutoplay() {
+    if (!settings.autoplay || finished || !cards.length) return;
+    speak(speechTarget(currentCard()));
+  }
+
+  ttsBtn.addEventListener('click', speakCurrent);
+
+  /* ---------- Card gestures: tap = flip, hold = speak, swipe = next/prev ---------- */
+  let down = null;
+  let pressTimer = null;
+  let longPressed = false;
+
+  flashcard.addEventListener('pointerdown', e => {
+    if (finished || busy) return;
+    down = { x: e.clientX, y: e.clientY, moved: false };
+    longPressed = false;
+    clearTimeout(pressTimer);
+    pressTimer = setTimeout(() => {
+      if (down && !down.moved) { longPressed = true; speakCurrent(); }
+    }, LONG_PRESS_MS);
+  });
+
+  flashcard.addEventListener('pointermove', e => {
+    if (!down) return;
+    if (Math.abs(e.clientX - down.x) > 10 || Math.abs(e.clientY - down.y) > 10) {
+      down.moved = true;
+      clearTimeout(pressTimer);
+    }
+  });
+
+  function endPress(e, cancelled) {
+    clearTimeout(pressTimer);
+    if (!down) return;
+    const d = down;
+    down = null;
+    if (cancelled || longPressed) return;
+    const dx = e.clientX - d.x;
+    const dy = e.clientY - d.y;
+    if (Math.abs(dx) > SWIPE_PX && Math.abs(dx) > Math.abs(dy)) {
+      if (dx < 0) goNext(); else goPrev();
+    } else if (!d.moved) {
+      flipCard();
+    }
+  }
+
+  flashcard.addEventListener('pointerup', e => endPress(e, false));
+  flashcard.addEventListener('pointercancel', e => endPress(e, true));
+  flashcard.addEventListener('pointerleave', e => {
+    // touch devices fire pointerleave right after pointerup; only cancel if still pressed
+    if (down && hasSpeech && longPressed) stopSpeaking();
+    endPress(e, true);
+  });
+
+  flashcard.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      flipCard();
+    }
+  });
+
+  /* ---------- Keyboard shortcuts ---------- */
+  document.addEventListener('keydown', e => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const tag = e.target && e.target.tagName;
+    if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+    if (quizMode || study.hidden || e.target === flashcard) return;
+
+    switch (e.key) {
+      case 'ArrowRight': goNext(); break;
+      case 'ArrowLeft': goPrev(); break;
+      case ' ':
+        if (tag === 'BUTTON') return;
+        e.preventDefault();
+        flipCard();
+        break;
+      case 's': case 'S': speakCurrent(); break;
+      case 'u': case 'U': undoRating(); break;
+      case '1': case '2': case '3': case '4':
+        if (!rating.hidden) rate(Number(e.key));
+        break;
+      default: break;
+    }
+  });
+
+  /* ---------- Study today: due cards + new cards, sized to the daily goal ---------- */
+  const todayCount = () => (stats.date === dayKey() ? stats.today || 0 : 0);
+
+  function dueCount() {
+    const now = Date.now();
+    let n = 0;
+    for (const [k, p] of Object.entries(progress)) {
+      if (p && p.due <= now && k.includes('|')) n++;
+    }
+    return n;
+  }
+
+  function dueEntries() {
+    const now = Date.now();
+    return Object.entries(progress)
+      .filter(([k, p]) => p && p.due <= now && k.includes('|'))
+      .sort((a, b) => (a[1].due - b[1].due) || (a[1].box - b[1].box));   // most overdue first
+  }
+
+  // Cards of the open deck that have never been rated (one per front text)
+  function newCardsInDeck() {
+    if (mode !== 'batch') return [];
+    const seen = new Set();
+    return allCards.filter(c => {
+      const k = cardKey(c);
+      if (progress[k] || seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+  }
+
+  async function startSession() {
+    const left = Math.max(goal() - todayCount(), 0);
+    const due = dueEntries().slice(0, left > 0 ? left : REVIEW_LIMIT);
+    const fresh = left > 0 ? newCardsInDeck().slice(0, Math.max(left - due.length, 0)) : [];
+
+    if (!due.length && !fresh.length) {
+      notice('Nothing to study right now — nice work! 🎉');
+      return;
+    }
+
+    const t0 = loadToken;
+    reviewDueBtn.disabled = true;
+    notice('Preparing today’s session…');
+
+    // due cards may come from other decks: fetch those files and pick the wanted cards
+    const wanted = new Set(due.map(([k]) => k));
+    const files = [...new Set(due.map(([k]) => k.slice(0, k.indexOf('|'))))];
+    const byKey = new Map();
+
+    await Promise.all(files.map(async f => {
+      try {
+        const res = await fetch(f);
+        if (!res.ok) return;
+        const data = await res.json();
+        for (const c of data) {
+          if (!c || c.front == null || c.back == null) continue;
+          const card = { ...c, front: String(c.front), back: String(c.back), _file: f, isOld: true };
+          const k = cardKey(card);
+          if (wanted.has(k)) byKey.set(k, card);
+        }
+      } catch { /* skip files that fail */ }
+    }));
+
+    reviewDueBtn.disabled = false;
+    if (t0 !== loadToken) return;                 // the learner switched deck meanwhile
+
+    fresh.forEach(c => { c.isOld = false; });
+    const list = [...due.map(([k]) => byKey.get(k)).filter(Boolean), ...fresh];
+    if (!list.length) {
+      notice('Could not load the cards. Are the data files reachable?');
+      return;
+    }
+
+    ++loadToken;                                  // cancel any pending lesson load
+    leaveQuizUI();
+    mode = 'review';
+    allCards = list;
+    setDeck(list);
+    noticeEl.textContent = '';
+    renderStats();
+    renderCard();
+  }
+
+  /* ---------- Quiz ---------- */
+  function startQuiz(source) {
+    clearUndo();
+    const seen = new Set();
+    const list = (source || allCards).filter(c => !seen.has(c.front) && seen.add(c.front));
+    if (!list.length) return;
+    shuffleInPlace(list);
+
+    quizData = list.map(c => ({
+      card: c,
+      q: reverseMode ? c.back : c.front,
+      a: reverseMode ? c.front : c.back,
+      isCorrect: false,
+      timeTaken: 0,
+      startTime: 0
+    }));
+    quizIndex = 0;
+    quizStart = Date.now();
+    quizMode = true;
+
+    study.hidden = true;
+    quizContainer.hidden = false;
+    showQuizQuestion();
+  }
+
+  function leaveQuizUI() {
+    if (!quizMode) return;
+    quizMode = false;
+    quizContainer.hidden = true;
+    study.hidden = false;
+  }
+
+  // Cards are German on the front. The back is English, or sometimes a German
+  // sentence (then the front looks like "sein (be)": the English gloss is in brackets).
+  //  typing : show the English, type the German front
+  //  choice : front -> back, flipped by Reverse (sentence cards use the gloss instead)
+  function qaFor(cur) {
+    const c = cur.card;
+    const gloss = (c.front.match(/\(([^)]+)\)\s*$/) || [])[1];
+    const useGloss = !!gloss && looksGerman(c.back);
+    let q, ansSide;
+    if (quizType.value === 'typing') {
+      ansSide = 'front';
+      q = useGloss ? gloss : c.back;
+    } else if (reverseMode) {
+      ansSide = 'front';
+      q = c.back;
+    } else if (useGloss) {
+      ansSide = 'front';
+      q = gloss;
+    } else {
+      ansSide = 'back';
+      q = c.front;
+    }
+    return { q, a: c[ansSide], ansSide };
+  }
+
   function showQuizQuestion() {
-    const current = quizData[quizIndex];
+    const cur = quizData[quizIndex];
+    Object.assign(cur, qaFor(cur));
+    quizAnswered = false;
+    cur.startTime = Date.now();
 
-    current.startTime = Date.now(); // start the timing;
-    quizQuestion.textContent = current.question;
-    
-    // Update progress
-    quizProgress.textContent = `Question ${quizIndex + 1} of ${quizData.length}`;
+    quizResult.hidden = true;
+    quizQuestion.hidden = false;
+    quizProgress.hidden = false;
+    quizNext.hidden = false;
+    quizNext.textContent = 'Skip';
+    quizFeedback.textContent = '';
+    quizFeedback.className = '';
 
-    const options = generateOptions(current.answer);
-    quizOptions.innerHTML = "";
+    renderText(quizQuestion, cur.q);
+    updateQuizProgress();
+
+    const typing = quizType.value === 'typing';
+    quizOptions.hidden = typing;
+    quizForm.hidden = !typing;
+    quizOptions.classList.remove('locked');
+    quizOptions.innerHTML = '';
+
+    if (typing) {
+      quizInput.value = '';
+      quizInput.placeholder = 'Type it in German';
+      quizInput.readOnly = false;
+      quizInput.focus();
+    } else {
+      buildOptions(cur);
+    }
+  }
+
+  function updateQuizProgress() {
+    const done = quizData.filter(q => q.isCorrect).length;
+    quizProgress.textContent = `Question ${quizIndex + 1} of ${quizData.length} · ✅ ${done}`;
+  }
+
+  function buildOptions(cur) {
+    const side = c => cleanAnswer(c[cur.ansSide]);
+    const correct = cleanAnswer(cur.a);
+    const pool = [...new Set(allCards.map(side))].filter(x => x && x !== correct);
+    shuffleInPlace(pool);
+    const options = shuffleInPlace([correct, ...pool.slice(0, 3)]);
 
     options.forEach(opt => {
-      const btn = document.createElement("button");
+      const btn = document.createElement('button');
+      btn.type = 'button';
       btn.textContent = opt;
-      btn.onclick = () => checkQuizAnswer(opt, current.answer);
+      btn.addEventListener('click', () => answerChoice(btn, opt, correct));
       quizOptions.appendChild(btn);
     });
   }
 
-  function showQuizResult(){
-    quizQuestion.textContent = "Well done! You completed the quiz!";
-
-    const totalTime = Date.now() - quizStartTime; // total quiz duration
-    const totalTimeFormatted = formatTime(totalTime);
-
-    const correctCount = quizData.filter(q => q.isCorrect).length;
-    const wrongCount = quizData.length - correctCount;
-
-    // Average time in seconds
-    const avgTimeMs = quizData.reduce((sum, q) => sum + (q.timeTaken || 0), 0) / quizData.length;
-    const avgTimeFormatted = formatTime(avgTimeMs);
-
-
-    // Define feedback messages
-    const performance = correctCount / quizData.length >= 0.8
-        ? "Excellent! You're brilliant!"
-        : correctCount / quizData.length >= 0.5
-        ? "Good! Keep practicing."
-        : "Needs improvement. Keep trying!";
-
-
-    const timeInfo = totalTime >= 1 
-        ? `⏱ Total time: ${totalTimeFormatted}. Per question: ${avgTimeFormatted}`
-        : `⏱ Average per question: ${avgTimeFormatted}`
-
-    // Reuse the option buttons
-    const optionButtons = quizOptions.querySelectorAll("button");
-
-    optionButtons[0].textContent = `✅ Correct: ${correctCount}`;
-    optionButtons[1].textContent = `❌ Wrong: ${wrongCount}`;
-    optionButtons[2].textContent = timeInfo;
-    optionButtons[3].textContent = performance;
-
-    // Disable buttons so user can't click them
-    optionButtons.forEach(btn => btn.disabled = true);
-
-    // Hide Next button and show Exit button
-    quizNext.disabled = true;
-    quizNext.style.display = "none";
-
-    quizExit.disabled = false;
-    quizExit.style.display = "block";    
+  function answerChoice(btn, selected, correct) {
+    if (quizAnswered) return;
+    const cur = quizData[quizIndex];
+    const ok = selected === correct;
+    quizOptions.classList.add('locked');
+    Array.from(quizOptions.children).forEach(b => {
+      if (b.textContent === correct) b.classList.add('correct');
+      else if (b === btn) b.classList.add('wrong');
+    });
+    recordAnswer(cur, ok, ok ? '✅ Correct!' : `❌ Wrong! Correct answer: ${cur.a}`);
   }
 
-  // Create 4 options (1 correct + 3 random)
-  function generateOptions(correct) {
-    correct = stripAfterDashOrParen(correct);
-    const allAnswers = cards.map(c => stripAfterDashOrParen(c.back));
-    
-    // Filter out the correct answer and remove duplicates
-    const wrongSet = new Set(allAnswers.filter(a => a !== correct));
-    const wrong = Array.from(wrongSet);
-    shuffleArray(wrong);
-
-    const options = [correct, ...wrong.slice(0, 3)];
-    shuffleArray(options);
-    return options;
-  }
-
-  // Check answer
-  function checkQuizAnswer(selected, correct) {
-
-    const current = quizData[quizIndex];
-    const formattedAnaswer = stripAfterDashOrParen(correct);
-
-    // save user answer
-    current.userAnswer = selected;
-    current.isCorrect = selected === formattedAnaswer;
-    current.timeTaken = Date.now() - current.startTime;
-
-    if (current.isCorrect) {
-      flashQuizQuestion("correct", "✅ Correct!");
-    } else {
-      flashQuizQuestion("wrong", `❌ Wrong! Correct answer: ${correct}`);
+  function checkTyped() {
+    if (quizAnswered) return;
+    const cur = quizData[quizIndex];
+    const typed = quizInput.value.trim();
+    if (!typed) {
+      quizFeedback.className = 'bad';
+      quizFeedback.textContent = 'Type an answer, or press Skip.';
+      return;
     }
 
+    const cleaned = cleanAnswer(cur.a);
+    const variants = [...new Set([cleaned, ...cleaned.split(/\s*[\/;]\s*/)])].filter(Boolean);
+    const exact = variants.some(v => lowSpaces(v) === lowSpaces(typed));
+    const loose = exact || variants.some(v => normalize(v) === normalize(typed));
+
+    quizInput.readOnly = true;
+    if (exact) recordAnswer(cur, true, '✅ Correct!');
+    else if (loose) recordAnswer(cur, true, `✅ Correct — with the special characters: ${cleaned}`);
+    else recordAnswer(cur, false, `❌ Wrong! Correct answer: ${cur.a}`);
   }
 
-  function flashQuizQuestion(status, message) {
-    // status: "correct", "wrong", or "warning"
-    // message: text to show in #quiz-question
-    quizQuestion.textContent = message;
-
-    // Remove all previous flash classes
-    quizQuestion.classList.remove("flash-correct", "flash-wrong", "flash-warning");
-
-    // Add the new flash class
-    quizQuestion.classList.add(`flash-${status}`);
-
-    // Remove the class after animation completes
-    setTimeout(() => {
-        quizQuestion.classList.remove(`flash-${status}`);
-
-        // Enable Next button only for correct/wrong (not warning)
-        if (status !== "warning") {
-            quizNext.disabled = false;
-        }
-    }, 800);
-  }
-
-  function goToNextQuizQuestion() {
-      if (quizProcessing) return; // ignore if already processing
-      quizProcessing = true;
-
-      setTimeout(() => {
-          quizIndex++;
-          if (quizIndex >= quizData.length) {
-              showQuizResult();
-              return;
-          }
-          showQuizQuestion();
-          quizProcessing = false; // allow next action
-      }, 1000);
-  }
-
-  // Next question
-  quizNext.addEventListener("click", () => {
-    const current = quizData[quizIndex];
-
-    if (!current.userAnswer) {
-        flashQuizQuestion("warning", "⚠ You didn't select an answer! This question will count as wrong.");
-
-        // Mark as wrong automatically
-        current.isCorrect = false;
-        current.userAnswer = null;
-        current.timeTaken = Date.now() - current.startTime;
-
-        goToNextQuizQuestion();
-        return;
+  function skipQuestion() {
+    if (quizAnswered) return;
+    const cur = quizData[quizIndex];
+    if (quizType.value === 'typing') quizInput.readOnly = true;
+    else {
+      quizOptions.classList.add('locked');
+      const correct = cleanAnswer(cur.a);
+      Array.from(quizOptions.children).forEach(b => {
+        if (b.textContent === correct) b.classList.add('correct');
+      });
     }
+    recordAnswer(cur, false, `⚠ Skipped. Correct answer: ${cur.a}`, 'warning');
+  }
 
-    // normal condition
+  function recordAnswer(cur, ok, message, flashStatus) {
+    quizAnswered = true;
+    cur.isCorrect = ok;
+    cur.timeTaken = Date.now() - cur.startTime;
+    applyRating(cur.card, ok ? 3 : 1);          // quiz results feed the Leitner boxes too
+
+    quizFeedback.className = ok ? 'ok' : 'bad';
+    quizFeedback.textContent = message;
+    flashQuiz(flashStatus || (ok ? 'correct' : 'wrong'));
+    updateQuizProgress();
+    quizNext.textContent = quizIndex + 1 >= quizData.length ? 'See results' : 'Next Question';
+    renderStats();
+  }
+
+  function flashQuiz(status) {
+    quizQuestion.classList.remove('flash-correct', 'flash-wrong', 'flash-warning');
+    void quizQuestion.offsetWidth;               // restart the animation
+    quizQuestion.classList.add('flash-' + status);
+    setTimeout(() => quizQuestion.classList.remove('flash-' + status), 800);
+  }
+
+  function goNextQuiz() {
     quizIndex++;
-
-    if (quizIndex >= quizData.length) {
-        showQuizResult();
-        return;
-    }
-
-    showQuizQuestion();
-  });
+    if (quizIndex >= quizData.length) showQuizResult();
+    else showQuizQuestion();
+  }
 
   function formatTime(ms) {
     const totalSeconds = Math.round(ms / 1000);
@@ -889,139 +1222,142 @@ document.addEventListener('DOMContentLoaded', () => {
     return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
   }
 
-  // Exit quiz mode
-  quizExit.addEventListener("click", () => {
-    exitQuizMode();
+  function showQuizResult() {
+    quizQuestion.hidden = true;
+    quizOptions.hidden = true;
+    quizForm.hidden = true;
+    quizNext.hidden = true;
+    quizProgress.hidden = true;
+    quizFeedback.textContent = '';
+    quizResult.hidden = false;
+
+    const total = quizData.length;
+    const correctCount = quizData.filter(q => q.isCorrect).length;
+    const wrong = quizData.filter(q => !q.isCorrect);
+    const avg = quizData.reduce((s, q) => s + q.timeTaken, 0) / total;
+    const ratio = correctCount / total;
+    const performance = ratio >= 0.8 ? "Excellent! You're brilliant!"
+      : ratio >= 0.5 ? 'Good! Keep practicing.'
+      : 'Needs improvement. Keep trying!';
+
+    quizSummary.textContent =
+      `Well done! You completed the quiz!\n` +
+      `✅ Correct: ${correctCount}   ❌ Wrong: ${wrong.length}\n` +
+      `⏱ Total time: ${formatTime(Date.now() - quizStart)} · Per question: ${formatTime(avg)}\n` +
+      performance;
+
+    quizWrongList.innerHTML = '';
+    wrong.forEach(q => {
+      const li = document.createElement('li');
+      li.textContent = `${q.q}  →  ${q.a}`;
+      quizWrongList.appendChild(li);
+    });
+
+    quizRetry.hidden = wrong.length === 0;
+    quizRetry.textContent = `Practise mistakes (${wrong.length})`;
+    confettiBurst();
+  }
+
+  quizNext.addEventListener('click', () => {
+    if (!quizAnswered) skipQuestion();
+    else goNextQuiz();
   });
 
-  function startQuizMode(){
-    quizMode = true;
-    loadQuizData();
-
-    quizIndex = 0;
-    cardContainer.style.display = "none";
-    flashCardButtons.style.display = "none";
-    startQuizBtn.style.display = "none";
-    repeatBatchBtn.style.display = "none";
-    nextBatchBtn.style.display = "none";
-    quizContainer.style.display = "block";
-    showQuizQuestion();
-
-    quizNext.disabled = false;
-    quizNext.style.display = "block";
-
-    quizExit.disabled = true;
-    quizExit.style.display = "none";
-  }
-
-  function exitQuizMode(){
-    quizContainer.style.display = "none";
-    cardContainer.style.display = "block";
-    flashCardButtons.style.display = "flex";
-
-    previousCards = [];
-    lastLoadedNewCards = [];
-
-    resetBatchAndQuizMode(); // rest batch and quiz mode
-    resetDeckOriginal(); // rest the flash cards;
-    loadBatch(0); // load the first batch
-    showCard(); // show the cards
-  }
-
-  function resetBatchAndQuizMode(){
-    currentBatch = 0;
-    batchIndex = 0;
-
-    quizMode = false;
-    quizIndex = 0;
-  }
-
-  function restFlashCards(){
-    currentIndex = 0;
-    flipped = false;
-    finished = false;
-  }
-
-function loadSavedState() {
-  const savedMain = localStorage.getItem("mainCategory");
-  const savedSub = localStorage.getItem("subCategory");
-  const savedIndex = localStorage.getItem("cardIndex");
-  const savedReverse = localStorage.getItem("reverseMode");
-  const savedShuffle = localStorage.getItem("shuffleMode");
-
-  // FIRST SESSION → load defaults
-  if (!savedMain || !datasets[savedMain]) {
-    const defaultMain = Object.keys(datasets)[0];
-    mainCategory.value = defaultMain;
-
-    populateSubcategories(defaultMain);
-    const firstSub = subCategory.options[0]?.value;
-    if (firstSub) loadCards(firstSub);
-
-    resetDeckOriginal();
-    showCard();
-    return;
-  }
-
-  // RESTORE SAVED SESSION
-  mainCategory.value = savedMain;
-  populateSubcategories(savedMain);
-
-  setTimeout(() => {
-    // Load cards for the saved subcategory
-    if (savedSub) {
-      subCategory.value = savedSub;
-      loadCards(savedSub);
-    }
-
-    // Build deck FIRST (shuffle or normal)
-    if (savedShuffle === "true") {
-      resetDeckShuffled();
-      shuffleBtn.classList.add("active-shuffle");
-    } else {
-      resetDeckOriginal();
-      shuffleBtn.classList.remove("active-shuffle");
-    }
-
-    // Now restore index — AFTER deck is created
-    currentIndex = savedIndex ? Number(savedIndex) : 0;
-
-    // Reverse mode
-    if (savedReverse === "true") {
-      reverseMode = true;
-      reverseBtn.classList.add("active-reverse");
-    } else {
-      reverseMode = false;
-      reverseBtn.classList.remove("active-reverse");
-    }
-
-    showCard();
-    }, 150);
-  }
-
-  // Save session
-  function saveState() {
-    localStorage.setItem("mainCategory", mainCategory.value);
-    localStorage.setItem("subCategory", subCategory.value);
-    localStorage.setItem("cardIndex", currentIndex);
-    localStorage.setItem("reverseMode", reverseMode);
-    localStorage.setItem("shuffleMode", indexOrder.length > 1 ? "true" : "false");
-  }
-
-  const NEW_SRS_VERSION = "1.0"; // change this whenever a new version is available
-  const SRS_PROMPT_KEY = "srsPromptShown";
-  window.addEventListener('DOMContentLoaded', () => {
-    const lastPrompted = localStorage.getItem(SRS_PROMPT_KEY);
-  
-    if (lastPrompted !== NEW_SRS_VERSION) {
-      const trySRS = confirm("There is a new SRS version available now. Do you want to try it?");
-      if (trySRS) {
-        window.location.href = "srs.html";
-      } else {
-        // mark as shown for this version so user won't see it again
-        localStorage.setItem(SRS_PROMPT_KEY, NEW_SRS_VERSION);
-      }
-    }
+  quizForm.addEventListener('submit', e => {
+    e.preventDefault();
+    if (quizAnswered) goNextQuiz();
+    else checkTyped();
   });
 
-});
+  umlautBar.addEventListener('mousedown', e => e.preventDefault());   // keep input focus
+  umlautBar.addEventListener('click', e => {
+    const b = e.target.closest('button[data-char]');
+    if (!b || quizInput.readOnly) return;
+    quizInput.setRangeText(b.dataset.char, quizInput.selectionStart, quizInput.selectionEnd, 'end');
+    quizInput.focus();
+  });
+
+  quizRetry.addEventListener('click', () => {
+    const wrongCards = quizData.filter(q => !q.isCorrect).map(q => q.card);
+    if (wrongCards.length) startQuiz(wrongCards);
+  });
+
+  quizExit.addEventListener('click', () => {
+    leaveQuizUI();
+    if (mode === 'batch') {
+      loadBatch(0);                 // same as before: back to the first batch
+      saveSession();
+    }
+    renderCard();
+    renderStats();
+  });
+
+  quizType.addEventListener('change', () => {
+    settings.quizType = quizType.value;
+    store.set(KEYS.settings, settings);
+    if (quizMode && quizResult.hidden && !quizAnswered) showQuizQuestion();
+  });
+
+  /* ---------- Settings & mobile touches ---------- */
+  function applyTheme() {
+    const t = ['light', 'dark'].includes(settings.theme) ? settings.theme : 'auto';
+    document.documentElement.setAttribute('data-theme', t);
+  }
+
+  function settingsDone(msg) {
+    settingsBox.open = false;
+    notice(msg);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // These run after the Shuffle / Restart handlers registered earlier
+  shuffleBtn.addEventListener('click', () => { if (cards.length) settingsDone('Cards shuffled'); });
+  resetBtn.addEventListener('click', () => { if (cards.length) settingsDone('Back to the original order'); });
+
+  dailyGoalSel.addEventListener('change', () => {
+    settings.dailyGoal = Number(dailyGoalSel.value) || 20;
+    store.set(KEYS.settings, settings);
+    renderStats();
+    notice('Daily goal: ' + goal() + ' cards');
+  });
+
+  flashcard.addEventListener('contextmenu', e => e.preventDefault());   // long press must not open a menu
+  themeSel.addEventListener('change', () => {
+    settings.theme = themeSel.value;
+    store.set(KEYS.settings, settings);
+    applyTheme();
+  });
+
+  window.addEventListener('resize', fitText);
+
+  /* ---------- Init ---------- */
+  async function init() {
+    yearSpan.textContent = new Date().getFullYear();
+    autoplayBox.checked = !!settings.autoplay;
+    dailyGoalSel.value = String(goal());
+    themeSel.value = ['light', 'dark'].includes(settings.theme) ? settings.theme : 'auto';
+    applyTheme();
+    quizType.value = settings.quizType === 'typing' ? 'typing' : 'choice';
+    syncToggleButtons();
+
+    try {
+      await loadManifest();
+    } catch (err) {
+      emptyText = 'Could not load the lesson list (data/manifest.json).';
+      renderCard();
+      renderStats();
+      return;
+    }
+    fillMainCategories();
+
+    const saved = store.get(KEYS.session, null) || legacySession();
+    const main = saved && datasets[saved.main] ? saved.main : Object.keys(datasets)[0];
+    mainCategory.value = main;
+    populateSubcategories(main, saved && saved.sub);
+
+    renderStats();
+    await loadCards(subCategory.value, saved);
+  }
+
+  init();
+})();
