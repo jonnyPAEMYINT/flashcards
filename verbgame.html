@@ -3,359 +3,92 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Verb Dice · A1</title>
+<title>Verb Dice</title>
 <style>
-:root{
-  --bg:#f4f1ea;--card:#ffffff;--ink:#1d2433;--muted:#6b7385;--line:#e2ddd0;
-  --accent:#2f5bea;--accent-ink:#fff;--good:#1c8a4f;--goodbg:#e3f5ea;--bad:#c2372f;--badbg:#fbe8e6;--warn:#8a6100;--warnbg:#fff4d6;
-}
+:root{--bg:#f4f1ea;--card:#ffffff;--ink:#1d2433;--muted:#6b7385;--line:#e2ddd0;--accent:#2f5bea;--accent-ink:#fff}
 @media (prefers-color-scheme:dark){
-  :root{--bg:#14171f;--card:#1e2330;--ink:#eef0f6;--muted:#9aa2b6;--line:#2c3345;
-  --accent:#7b9bff;--accent-ink:#0f1320;--good:#5fd18f;--goodbg:#173026;--bad:#ff8a80;--badbg:#3a1d1d;--warn:#ffd36b;--warnbg:#3a3015;}
+  :root{--bg:#14171f;--card:#1e2330;--ink:#eef0f6;--muted:#9aa2b6;--line:#2c3345;--accent:#7b9bff;--accent-ink:#0f1320}
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  min-height:100dvh;display:flex;justify-content:center;
-  padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
-.app{width:100%;max-width:520px}
-h1{font-size:1.15rem;margin:4px 0 12px}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
-.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 4px;text-align:center}
-.stat b{display:block;font-size:1.2rem}
-.stat span{font-size:.66rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
-.modes{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
-.chip{flex:1 1 auto;min-height:40px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 12px;font:inherit;font-size:.9rem;cursor:pointer}
-.chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
-
-/* dice */
-.dice{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.die{aspect-ratio:1;background:var(--card);border:2px solid var(--line);border-radius:22px;box-shadow:0 5px 0 var(--line);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:18px 4px 6px;position:relative;overflow:hidden}
-.die .lab{position:absolute;top:7px;left:0;right:0;font-size:.62rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
-.die .face{font-weight:800;font-size:clamp(1.05rem,5.2vw,1.55rem);line-height:1.1;overflow-wrap:anywhere}
-.die.verb .face{font-size:clamp(.9rem,4.4vw,1.3rem)}
-.die.task .face{font-size:2rem}
-.die .sub{font-size:.7rem;color:var(--muted);min-height:1em;margin-top:2px}
+  min-height:100dvh;display:flex;align-items:center;justify-content:center;
+  padding:max(20px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+.app{width:100%;max-width:480px}
+.dice{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.die{aspect-ratio:1;background:var(--card);border:2px solid var(--line);border-radius:26px;box-shadow:0 6px 0 var(--line);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:22px 6px 8px;position:relative;cursor:pointer}
+.die .lab{position:absolute;top:10px;left:0;right:0;font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.die .face{font-weight:800;font-size:clamp(1.8rem,10vw,3rem);line-height:1.1;overflow-wrap:anywhere}
+.die.verb .face{font-size:clamp(1.15rem,6vw,1.8rem)}
+.die .sub{font-size:.85rem;color:var(--muted);min-height:1.2em;margin-top:6px}
 .die.rolling{animation:tumble .45s linear infinite;border-color:var(--accent)}
 @keyframes tumble{0%{transform:rotate(0) translateY(0)}25%{transform:rotate(-12deg) translateY(-9px)}50%{transform:rotate(10deg) translateY(0)}75%{transform:rotate(-8deg) translateY(-6px)}100%{transform:rotate(0) translateY(0)}}
 .die.land{animation:land .35s ease-out}
 @keyframes land{0%{transform:scale(1.18) rotate(7deg)}100%{transform:scale(1) rotate(0)}}
-.mean{text-align:center;color:var(--muted);margin:12px 0 4px;min-height:1.4em}
-
-.play{display:none;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin-top:10px}
-.play.show{display:block}
-.tag{display:inline-block;font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
-.task{margin:4px 0 8px;font-weight:600}
-.hint{color:var(--muted);font-size:.88rem;margin:0 0 12px}
-input#ans{width:100%;font:inherit;font-size:1.1rem;padding:14px;border-radius:12px;border:2px solid var(--line);background:var(--bg);color:var(--ink);outline:none}
-input#ans:focus{border-color:var(--accent)}
-input#ans[readonly]{opacity:.75}
-.chars{display:flex;gap:8px;margin:10px 0}
-.chars button{flex:1;min-height:44px;font:inherit;font-size:1.1rem;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;cursor:pointer}
-.go{width:100%;min-height:52px;border:0;border-radius:12px;background:var(--accent);color:var(--accent-ink);font:inherit;font-size:1.05rem;font-weight:700;cursor:pointer}
+.go{width:100%;min-height:58px;margin-top:22px;border:0;border-radius:14px;background:var(--accent);color:var(--accent-ink);font:inherit;font-size:1.15rem;font-weight:700;cursor:pointer}
 .go:disabled{opacity:.6}
-.go.sec{background:transparent;color:var(--ink);border:2px solid var(--line)}
-#roll{margin-top:14px}
-.fb{margin-top:14px;border-radius:12px;padding:12px 14px;display:none}
-.fb.show{display:block}
-.fb.ok{background:var(--goodbg);color:var(--good)}
-.fb.no{background:var(--badbg);color:var(--bad)}
-.fb.warn{background:var(--warnbg);color:var(--warn)}
-.fb p{margin:0 0 4px}
-.fb .ex{color:var(--ink);font-size:.92rem;margin-top:6px}
-.fb .ex div{margin-top:2px}
-.table{display:none;margin-top:12px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
-.table.show{display:grid;grid-template-columns:1fr 1fr}
-.table div{padding:8px 12px;border-bottom:1px solid var(--line);font-size:.95rem}
-.table div:nth-last-child(-n+2){border-bottom:0}
-.table .on{background:var(--accent);color:var(--accent-ink);font-weight:600}
-.table .vt{grid-column:1/-1;background:var(--bg);color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.06em}
-.foot{margin-top:14px;color:var(--muted);font-size:.8rem;text-align:center}
-@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
-.shake{animation:shake .25s}
 </style>
 </head>
 <body>
 <div class="app">
-  <h1>🎲 Verb Dice · A1</h1>
-
-  <div class="stats">
-    <div class="stat"><b id="sP">0</b><span>Points</span></div>
-    <div class="stat"><b id="sS">0</b><span>Streak</span></div>
-    <div class="stat"><b id="sB">0</b><span>Best</span></div>
-    <div class="stat"><b id="sR">0</b><span>Rolls</span></div>
-  </div>
-
-  <div class="modes" id="modes">
-    <button class="chip on" data-m="mix">🎲 Task die rolls</button>
-    <button class="chip" data-m="conj">✏️ Conjugate</button>
-    <button class="chip" data-m="sent">💬 Sentence</button>
-    <button class="chip" data-m="ques">❓ Question</button>
-  </div>
-
   <div class="dice">
     <div class="die" id="d1"><span class="lab">Subject</span><div class="face" id="f1">?</div><div class="sub" id="s1"></div></div>
     <div class="die verb" id="d2"><span class="lab">Verb</span><div class="face" id="f2">?</div><div class="sub" id="s2"></div></div>
-    <div class="die task" id="d3"><span class="lab">Task</span><div class="face" id="f3">?</div><div class="sub" id="s3"></div></div>
   </div>
-  <p class="mean" id="mean">Roll the dice to get a subject, a verb and a task.</p>
-
-  <div class="play" id="play">
-    <span class="tag" id="tag"></span>
-    <p class="task" id="task"></p>
-    <p class="hint" id="hint"></p>
-
-    <input id="ans" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="Type your answer…">
-    <div class="chars">
-      <button type="button" tabindex="-1">ä</button>
-      <button type="button" tabindex="-1">ö</button>
-      <button type="button" tabindex="-1">ü</button>
-      <button type="button" tabindex="-1">ß</button>
-    </div>
-    <button class="go" id="go">Check</button>
-
-    <div class="fb" id="fb"></div>
-    <div class="table" id="table"></div>
-  </div>
-
   <button class="go" id="roll">🎲 Roll the dice</button>
-  <p class="foot">ae / oe / ue / ss are accepted for ä / ö / ü / ß</p>
 </div>
 
 <script>
-// ---------- Data ----------
-// f = [ich, du, er/sie/es, ihr, wir/sie/Sie]
 const VERBS = [
-  {inf:'wohnen',   en:'to live (reside)', f:['wohne','wohnst','wohnt','wohnt','wohnen'],       obj:'in Berlin',       q:'Wo'},
-  {inf:'heißen',   en:'to be called',     f:['heiße','heißt','heißt','heißt','heißen'],       obj:'Maria',           q:'Wie'},
-  {inf:'leben',    en:'to live (be alive)',f:['lebe','lebst','lebt','lebt','leben'],           obj:'in Deutschland',  q:'Wo'},
-  {inf:'sprechen', en:'to speak',         f:['spreche','sprichst','spricht','sprecht','sprechen'], obj:'Deutsch',    q:'Was'},
-  {inf:'kommen',   en:'to come',          f:['komme','kommst','kommt','kommt','kommen'],      obj:'aus Spanien',     q:'Woher'},
-  {inf:'machen',   en:'to do / make',     f:['mache','machst','macht','macht','machen'],      obj:'Hausaufgaben',    q:'Was'},
-  {inf:'lernen',   en:'to learn',         f:['lerne','lernst','lernt','lernt','lernen'],      obj:'Deutsch',         q:'Was'},
-  {inf:'arbeiten', en:'to work',          f:['arbeite','arbeitest','arbeitet','arbeitet','arbeiten'], obj:'bei Siemens', q:'Wo'},
-  {inf:'spielen',  en:'to play',          f:['spiele','spielst','spielt','spielt','spielen'], obj:'Fußball',         q:'Was'},
-  {inf:'trinken',  en:'to drink',         f:['trinke','trinkst','trinkt','trinkt','trinken'], obj:'Kaffee',          q:'Was'},
-  {inf:'essen',    en:'to eat',           f:['esse','isst','isst','esst','essen'],            obj:'Pizza',           q:'Was'},
-  {inf:'fahren',   en:'to drive / go (by vehicle)', f:['fahre','fährst','fährt','fahrt','fahren'], obj:'nach Hamburg', q:'Wohin'},
-  {inf:'haben',    en:'to have',          f:['habe','hast','hat','habt','haben'],             obj:'einen Hund',      q:'Was'},
-  {inf:'sein',     en:'to be',            f:['bin','bist','ist','seid','sind'],               obj:'müde',            q:'Wie'},
-  {inf:'gehen',    en:'to go',            f:['gehe','gehst','geht','geht','gehen'],           obj:'in die Schule',   q:'Wohin'},
-  {inf:'lesen',    en:'to read',          f:['lese','liest','liest','lest','lesen'],          obj:'ein Buch',        q:'Was'},
-  {inf:'sehen',    en:'to see',           f:['sehe','siehst','sieht','seht','sehen'],         obj:'einen Film',      q:'Was'},
-  {inf:'schlafen', en:'to sleep',         f:['schlafe','schläfst','schläft','schlaft','schlafen'], obj:'lange',      q:'Wie lange'},
-  {inf:'kochen',   en:'to cook',          f:['koche','kochst','kocht','kocht','kochen'],      obj:'Suppe',           q:'Was'},
-  {inf:'kaufen',   en:'to buy',           f:['kaufe','kaufst','kauft','kauft','kaufen'],      obj:'Brot',            q:'Was'},
-  {inf:'studieren',en:'to study (at uni)',f:['studiere','studierst','studiert','studiert','studieren'], obj:'Medizin', q:'Was'}
+  ['wohnen','to live (reside)'],['heißen','to be called'],['leben','to live (be alive)'],['sprechen','to speak'],
+  ['kommen','to come'],['machen','to do / make'],['lernen','to learn'],['arbeiten','to work'],
+  ['spielen','to play'],['trinken','to drink'],['essen','to eat'],['fahren','to drive / go (by vehicle)'],
+  ['haben','to have'],['sein','to be'],['gehen','to go'],['lesen','to read'],
+  ['sehen','to see'],['schlafen','to sleep'],['kochen','to cook'],['kaufen','to buy'],['studieren','to study (at uni)']
 ];
-// i = index into verb forms, row = row to highlight in table
 const PRON = [
-  {p:'ich', i:0, row:'ich'},
-  {p:'du',  i:1, row:'du'},
-  {p:'er',  i:2, row:'er'},
-  {p:'sie', i:2, row:'er',  hint:'she'},
-  {p:'ihr', i:3, row:'ihr'},
-  {p:'wir', i:4, row:'wir'},
-  {p:'sie', i:4, row:'sie', hint:'they'},
-  {p:'Sie', i:4, row:'sie', hint:'formal you'}
+  ['ich',''],['du',''],['er',''],['sie','she'],['ihr',''],['wir',''],['sie','they'],['Sie','formal you']
 ];
-const ROWS = [['ich','ich',0],['du','du',1],['er','er / sie / es',2],['wir','wir',4],['ihr','ihr',3],['sie','sie / Sie',4]];
-const TASKS = {conj:{e:'✏️',n:'Conjugate',pts:10}, sent:{e:'💬',n:'Sentence',pts:20}, ques:{e:'❓',n:'Question',pts:20}};
-const TYPES = ['conj','sent','ques'];
-
-// ---------- Helpers ----------
 const $ = id => document.getElementById(id);
-const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
-const norm = s => s.toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss');
-const tokens = s => norm(s).split(/[^a-z]+/).filter(Boolean);
 const rnd = n => Math.floor(Math.random()*n);
+let rolling = false, started = false, lastVerb = -1;
 
-// ---------- State ----------
-let mode = 'mix', cur = null, answered = false, started = false, rolling = false, lastVerb = '';
-const st = {pts:0, s:0, b:0, r:0};
-try { st.b = +localStorage.getItem('vd_best') || 0; } catch(e) {}
-
-function showStats(){ $('sP').textContent = st.pts; $('sS').textContent = st.s; $('sB').textContent = st.b; $('sR').textContent = st.r; }
-
-function setRollBtn(){
-  const b = $('roll');
-  if (!started) { b.textContent = '🎲 Roll the dice'; b.className = 'go'; }
-  else if (answered) { b.textContent = '🎲 Roll again'; b.className = 'go'; }
-  else { b.textContent = '🎲 Skip & re-roll'; b.className = 'go sec'; }
-}
-
-// ---------- Rolling ----------
 function roll(){
   if (rolling) return;
-  if (started && !answered) st.s = 0;           // skipping breaks the streak
-  rolling = true; answered = false; started = true;
+  rolling = true;
   $('roll').disabled = true;
-  $('play').classList.remove('show');
-  $('mean').textContent = 'Rolling…';
 
-  let v; do { v = VERBS[rnd(VERBS.length)]; } while (v.inf === lastVerb);
-  lastVerb = v.inf;
-  const p = PRON[rnd(PRON.length)];
-  const type = mode === 'mix' ? TYPES[rnd(3)] : mode;
-  cur = {v, p, type, form: v.f[p.i]};
-  st.r++; showStats();
+  let vi; do { vi = rnd(VERBS.length); } while (vi === lastVerb);
+  lastVerb = vi;
+  const p = PRON[rnd(PRON.length)], v = VERBS[vi];
 
-  const stopAt = [850, 1150, 1450];
-  const done = [false, false, false];
-  ['d1','d2','d3'].forEach(id => { $(id).classList.remove('land'); $(id).classList.add('rolling'); });
-  ['s1','s2','s3'].forEach(id => $(id).textContent = '');
+  const done = [false, false];
+  ['d1','d2'].forEach(id => { $(id).classList.remove('land'); $(id).classList.add('rolling'); });
+  $('s1').textContent = ''; $('s2').textContent = '';
 
   const spin = setInterval(() => {
-    if (!done[0]) $('f1').textContent = PRON[rnd(PRON.length)].p;
-    if (!done[1]) $('f2').textContent = VERBS[rnd(VERBS.length)].inf;
-    if (!done[2]) $('f3').textContent = TASKS[TYPES[rnd(3)]].e;
+    if (!done[0]) $('f1').textContent = PRON[rnd(PRON.length)][0];
+    if (!done[1]) $('f2').textContent = VERBS[rnd(VERBS.length)][0];
   }, 75);
 
   const land = k => {
     done[k] = true;
     const d = $('d' + (k+1));
     d.classList.remove('rolling'); void d.offsetWidth; d.classList.add('land');
-    if (k === 0) { $('f1').textContent = p.p; $('s1').textContent = p.hint || ''; }
-    if (k === 1) { $('f2').textContent = v.inf; }
-    if (k === 2) { $('f3').textContent = TASKS[type].e; $('s3').textContent = TASKS[type].n; }
+    if (k === 0) { $('f1').textContent = p[0]; $('s1').textContent = p[1] ? '(' + p[1] + ')' : ''; }
+    else { $('f2').textContent = v[0]; $('s2').textContent = v[1]; }
     try { navigator.vibrate && navigator.vibrate(25); } catch(e) {}
-    if (done.every(Boolean)) { clearInterval(spin); rolling = false; reveal(); }
-  };
-  stopAt.forEach((t, k) => setTimeout(() => land(k), t));
-}
-
-function reveal(){
-  const {v, p, type} = cur;
-  $('mean').textContent = `${p.p}${p.hint ? ' (' + p.hint + ')' : ''} + ${v.inf} = ${v.en}`;
-  const tasks = {
-    conj:'Type the correct verb form.',
-    sent:'Write a full German sentence using this subject and verb.',
-    ques:'Write a German question using this subject and verb.'
-  };
-  const hints = {
-    conj:'',
-    sent:'Subject + verb + something. Idea: “… ' + v.obj + '.”',
-    ques:'Yes/no: verb first. Or start with a question word (Wo, Was, Wie…). End with “?”'
-  };
-  $('tag').textContent = TASKS[type].e + ' ' + TASKS[type].n + ' · ' + TASKS[type].pts + ' pts';
-  $('task').textContent = tasks[type];
-  $('hint').textContent = hints[type];
-  $('hint').style.display = hints[type] ? '' : 'none';
-  $('ans').value = ''; $('ans').readOnly = false;
-  $('go').style.display = '';
-  $('fb').className = 'fb'; $('fb').innerHTML = '';
-  $('table').className = 'table'; $('table').innerHTML = '';
-  $('play').classList.add('show');
-  $('roll').disabled = false;
-  setRollBtn();
-  $('ans').focus({preventScroll:true});
-}
-
-// ---------- Answering ----------
-function warn(msg){
-  const fb = $('fb');
-  fb.className = 'fb show warn';
-  fb.innerHTML = `<p>${msg}</p>`;
-  $('ans').classList.remove('shake'); void $('ans').offsetWidth; $('ans').classList.add('shake');
-}
-
-function examples(){
-  const {v, p, form} = cur;
-  const s  = `${cap(p.p)} ${form} ${v.obj}.`;
-  const yn = `${cap(form)} ${p.p} ${v.obj}?`;
-  const wq = `${v.q} ${form} ${p.p}?`;
-  return cur.type === 'ques' ? `<div>${yn}</div><div>${wq}</div>` : `<div>${s}</div>`;
-}
-
-function check(){
-  const raw = $('ans').value.trim();
-  if (!raw) { warn('Type something first 🙂'); return; }
-  const f = norm(cur.form), p = norm(cur.p.p);
-  const t = tokens(raw);
-  let ok = false, msg = '';
-
-  if (cur.type === 'conj') {
-    let a = t.slice();
-    if (a[0] === p) a.shift();            // allow "du sprichst"
-    ok = a.length === 1 && a[0] === f;
-    if (!ok) msg = `The correct form is “${cur.p.p} ${cur.form}”.`;
-  }
-  else if (cur.type === 'sent') {
-    if (t.length < 3) { warn('Write a full sentence (at least 3 words).'); return; }
-    for (let k = 0; k < t.length; k++) if (t[k] === f && (t[k-1] === p || t[k+1] === p)) ok = true;
-    if (!ok) {
-      if (!t.includes(f)) msg = `Use the verb form “${cur.form}” (${cur.p.p} → ${cur.form}).`;
-      else if (!t.includes(p)) msg = `Include the subject “${cur.p.p}”.`;
-      else msg = 'Check the word order: keep the subject right next to the verb (the verb is usually in 2nd position).';
+    if (done.every(Boolean)) {
+      clearInterval(spin); rolling = false; started = true;
+      $('roll').disabled = false; $('roll').textContent = '🎲 Roll again';
     }
-  }
-  else {
-    if (!/\?\s*$/.test(raw)) { warn('End your question with “?”'); return; }
-    if (t.length < 2) { warn('Add a few more words to your question.'); return; }
-    for (let k = 0; k <= 2; k++) if (t[k] === f && t[k+1] === p) ok = true;
-    if (!ok) {
-      if (!t.includes(f)) msg = `Use the verb form “${cur.form}” (${cur.p.p} → ${cur.form}).`;
-      else if (!t.includes(p)) msg = `Include the subject “${cur.p.p}”.`;
-      else msg = 'In a question the verb comes first (or right after a question word like Wo / Was / Wie), then the subject.';
-    }
-  }
-
-  answered = true;
-  let gained = 0;
-  if (ok) {
-    st.s++;
-    gained = TASKS[cur.type].pts + Math.min(st.s - 1, 5) * 2;   // streak bonus
-    st.pts += gained;
-    if (st.s > st.b) { st.b = st.s; try { localStorage.setItem('vd_best', st.b); } catch(e) {} }
-  } else st.s = 0;
-  showStats();
-
-  const fb = $('fb');
-  fb.className = 'fb show ' + (ok ? 'ok' : 'no');
-  fb.innerHTML = `<p><b>${ok ? '✓ Richtig! +' + gained + ' pts' : '✗ Not quite.'}</b> ${ok ? `${cur.p.p} ${cur.form}` : msg}</p>` +
-                 `<div class="ex"><span style="color:var(--muted)">Example:</span>${examples()}</div>`;
-
-  let h = `<div class="vt">${cur.v.inf} · ${cur.v.en}</div>`;
-  ROWS.forEach(([key, label, idx]) => {
-    const on = key === cur.p.row;
-    h += `<div class="${on ? 'on' : ''}">${label}</div><div class="${on ? 'on' : ''}">${cur.v.f[idx]}</div>`;
-  });
-  $('table').innerHTML = h;
-  $('table').className = 'table show';
-
-  $('ans').readOnly = true;
-  $('go').style.display = 'none';
-  setRollBtn();
-  $('roll').focus({preventScroll:true});
+  };
+  setTimeout(() => land(0), 850);
+  setTimeout(() => land(1), 1200);
 }
 
-// ---------- Events ----------
 $('roll').addEventListener('click', roll);
-$('go').addEventListener('click', check);
-$('ans').addEventListener('keydown', e => {
-  if (e.key !== 'Enter') return;
-  e.preventDefault();
-  answered ? roll() : check();
-});
-
-$('modes').addEventListener('click', e => {
-  const b = e.target.closest('.chip'); if (!b) return;
-  mode = b.dataset.m;
-  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === b));
-});
-
-document.querySelectorAll('.chars button').forEach(b => {
-  b.addEventListener('mousedown', e => e.preventDefault());
-  b.addEventListener('click', () => {
-    const i = $('ans'); if (i.readOnly) return;
-    const s = i.selectionStart ?? i.value.length, en = i.selectionEnd ?? i.value.length;
-    i.value = i.value.slice(0, s) + b.textContent + i.value.slice(en);
-    i.focus(); i.setSelectionRange(s + 1, s + 1);
-  });
-});
-
-showStats();
-setRollBtn();
+document.querySelectorAll('.die').forEach(d => d.addEventListener('click', roll));
 </script>
 </body>
 </html>
