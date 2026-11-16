@@ -80,7 +80,7 @@ summary{cursor:pointer;font-weight:600;font-size:.9rem;padding:6px 0}
 .seg{display:flex;gap:6px;margin:6px 0 4px}
 .seg button{flex:1;min-height:46px;border:2px solid var(--line);background:var(--card);border-radius:12px;font-weight:700;cursor:pointer}
 .seg button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.diceArea{display:flex;justify-content:center;gap:5vw;margin:26px 0 10px;min-height:170px;align-items:center}
+.diceArea{display:flex;justify-content:center;gap:5vw;margin:26px 0 10px;min-height:350px;align-items:center}
 .die{width:min(38vw,160px);aspect-ratio:1;background:var(--card);border:3px solid var(--ink);border-radius:22%;padding:13%;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);gap:5%;box-shadow:0 7px 0 var(--line);cursor:pointer;user-select:none}
 .pip{border-radius:50%}
 .pip.on{background:var(--ink)}
@@ -103,7 +103,7 @@ summary{cursor:pointer;font-weight:600;font-size:.9rem;padding:6px 0}
 .count{text-align:center;color:var(--muted);font-size:.9rem;margin:6px 0}
 .bar{height:6px;background:var(--line);border-radius:99px;overflow:hidden;margin-bottom:12px}
 .bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .25s}
-.flipwrap{perspective:1200px;width:100%;height:min(56vw,260px);min-height:190px;touch-action:pan-y;cursor:pointer;user-select:none}
+.flipwrap{perspective:1200px;width:100%;height:min(85vw,260px);min-height:190px;touch-action:pan-y;cursor:pointer;user-select:none}
 .inner{position:relative;width:100%;height:100%;transition:transform .5s;transform-style:preserve-3d}
 .flipwrap.flip .inner{transform:rotateY(180deg)}
 .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:20px;border:2px solid var(--line);background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px;text-align:center;box-shadow:0 6px 0 var(--line)}
