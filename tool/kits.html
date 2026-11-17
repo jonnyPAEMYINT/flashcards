@@ -8,14 +8,17 @@
 :root{
   --bg:#f4f1ea;--card:#ffffff;--ink:#1d2433;--muted:#6b7385;--line:#e2ddd0;
   --accent:#2f5bea;--accent-ink:#fff;--good:#1c8a4f;--goodbg:#e3f5ea;--bad:#c2372f;--badbg:#fbe8e6;
+  --fa:#ffffff;--fb:#f6f1e3;--dot:rgba(29,36,51,.07);--ba:#3b5bdb;--bb:#7048e8;
 }
 @media (prefers-color-scheme:dark){
   :root{--bg:#14171f;--card:#1e2330;--ink:#eef0f6;--muted:#9aa2b6;--line:#2c3345;
-  --accent:#7b9bff;--accent-ink:#0f1320;--good:#5fd18f;--goodbg:#173026;--bad:#ff8a80;--badbg:#3a1d1d;}
+  --accent:#7b9bff;--accent-ink:#0f1320;--good:#5fd18f;--goodbg:#173026;--bad:#ff8a80;--badbg:#3a1d1d;
+  --fa:#272e42;--fb:#1b2131;--dot:rgba(255,255,255,.06);--ba:#4c63d9;--bb:#7a56e0;}
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;justify-content:center}
+body[data-tab="cards"]{background:radial-gradient(120% 55% at 50% -8%, rgba(112,72,232,.16), transparent 62%), var(--bg)}
 .app{width:100%;max-width:560px;padding:max(12px,env(safe-area-inset-top)) 14px calc(84px + env(safe-area-inset-bottom))}
 .hidden{display:none!important}
 h2{font-size:1.05rem;margin:0}
@@ -80,7 +83,7 @@ summary{cursor:pointer;font-weight:600;font-size:.9rem;padding:6px 0}
 .seg{display:flex;gap:6px;margin:6px 0 4px}
 .seg button{flex:1;min-height:46px;border:2px solid var(--line);background:var(--card);border-radius:12px;font-weight:700;cursor:pointer}
 .seg button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.diceArea{display:flex;justify-content:center;gap:5vw;margin:26px 0 10px;min-height:250px;align-items:center}
+.diceArea{display:flex;justify-content:center;gap:5vw;margin:26px 0 10px;min-height:170px;align-items:center}
 .die{width:min(38vw,160px);aspect-ratio:1;background:var(--card);border:3px solid var(--ink);border-radius:22%;padding:13%;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);gap:5%;box-shadow:0 7px 0 var(--line);cursor:pointer;user-select:none}
 .pip{border-radius:50%}
 .pip.on{background:var(--ink)}
@@ -99,27 +102,61 @@ summary{cursor:pointer;font-weight:600;font-size:.9rem;padding:6px 0}
 .hist{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:12px}
 .hist span{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:.82rem;color:var(--muted)}
 
-/* cards */
-.count{text-align:center;color:var(--muted);font-size:.9rem;margin:6px 0}
-.bar{height:6px;background:var(--line);border-radius:99px;overflow:hidden;margin-bottom:12px}
-.bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .25s}
-.flipwrap{perspective:1200px;width:100%;height:min(85vw,260px);min-height:190px;touch-action:pan-y;cursor:pointer;user-select:none}
-.inner{position:relative;width:100%;height:100%;transition:transform .5s;transform-style:preserve-3d}
+/* ================= flashcards ================= */
+.chead{display:flex;justify-content:center;margin:2px 0 8px}
+.cpill{background:var(--card);border:1px solid var(--line);border-radius:99px;padding:3px 16px;font-weight:700;font-size:.85rem;letter-spacing:.04em}
+.bar{height:6px;background:var(--line);border-radius:99px;overflow:hidden;margin:0 6px 16px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--ba),var(--bb));width:0;border-radius:99px;transition:width .3s}
+
+/* big card sized to the screen (iPhone 12 mini friendly) with a deck stacked behind it */
+.deck{position:relative;height:clamp(330px,calc(100dvh - 285px),600px);margin:0 4px 20px}
+.deck::before,.deck::after{content:"";position:absolute;inset:0;border-radius:28px;background:var(--card);border:2px solid var(--line);z-index:0}
+.deck::before{transform:translateY(16px) scale(.9);opacity:.5}
+.deck::after{transform:translateY(8px) scale(.95);opacity:.85}
+.deck.single::before,.deck.single::after{display:none}
+
+.flipwrap{position:absolute;inset:0;z-index:1;perspective:1400px;touch-action:pan-y;cursor:pointer;user-select:none;-webkit-user-select:none}
+.flipwrap.slide{animation:slideIn .3s ease-out}
+@keyframes slideIn{from{opacity:0;transform:translateX(var(--dx,40px)) scale(.95)}to{opacity:1;transform:none}}
+.inner{position:relative;width:100%;height:100%;transition:transform .55s cubic-bezier(.3,.9,.3,1);transform-style:preserve-3d}
 .flipwrap.flip .inner{transform:rotateY(180deg)}
-.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:20px;border:2px solid var(--line);background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px;text-align:center;box-shadow:0 6px 0 var(--line)}
-.face.back{transform:rotateY(180deg);background:var(--accent);border-color:var(--accent);color:var(--accent-ink);box-shadow:0 6px 0 rgba(0,0,0,.2)}
-.face small{text-transform:uppercase;letter-spacing:.1em;font-size:.72rem;opacity:.7;margin-bottom:8px}
-.face .txt{font-size:clamp(1.6rem,8vw,2.5rem);font-weight:800;line-height:1.2;overflow-wrap:anywhere}
-.hintline{text-align:center;color:var(--muted);font-size:.8rem;margin:12px 0 4px}
-.navrow{display:flex;gap:10px;margin-top:8px}
-.navrow button{flex:1;min-height:52px;border:2px solid var(--line);background:var(--card);border-radius:14px;font-size:1.3rem;cursor:pointer}
-.tools{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
-.tools .btn{flex:1}
+
+.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:64px 22px 56px;text-align:center;overflow:hidden}
+.face.front{
+  background:radial-gradient(circle at 1px 1px,var(--dot) 1.2px,transparent 1.6px) 0 0/20px 20px, linear-gradient(160deg,var(--fa),var(--fb));
+  border:2px solid var(--line);box-shadow:0 14px 30px -12px rgba(30,40,80,.35), 0 3px 0 var(--line);color:var(--ink)
+}
+.face.back{
+  transform:rotateY(180deg);color:#fff;
+  background:radial-gradient(circle at 1px 1px,rgba(255,255,255,.12) 1.2px,transparent 1.6px) 0 0/20px 20px, linear-gradient(150deg,var(--ba),var(--bb));
+  border:2px solid rgba(255,255,255,.18);box-shadow:0 14px 34px -10px rgba(80,60,200,.55)
+}
+.face .txt{font-size:clamp(2rem,10.5vw,3.4rem);font-weight:800;line-height:1.15;overflow-wrap:anywhere;text-wrap:balance;max-height:100%}
+.chip{position:absolute;top:18px;left:50%;transform:translateX(-50%);padding:4px 14px;border-radius:99px;font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap}
+.chip:empty{display:none}
+.front .chip{background:rgba(120,120,140,.14);color:var(--muted)}
+.back .chip{background:rgba(255,255,255,.22);color:#fff}
+.tapnote{position:absolute;bottom:18px;left:0;right:0;font-size:.8rem;opacity:.7}
+.front .tapnote{color:var(--muted)}
+.say{position:absolute;top:10px;right:12px;width:44px;height:44px;border-radius:50%;border:0;font-size:1.15rem;cursor:pointer;z-index:2}
+.front .say{background:var(--bg);border:2px solid var(--line)}
+.back .say{background:rgba(255,255,255,.22)}
+/* der / die / das colour badges */
+.art{display:inline-block;vertical-align:middle;font-size:.4em;font-weight:800;letter-spacing:.04em;padding:.25em .8em;margin-right:.55em;border-radius:99px;color:#fff;border:2px solid rgba(255,255,255,.85);transform:translateY(-.1em)}
+.art.der{background:#3e63dd}.art.die{background:#e5484d}.art.das{background:#30a46c}
+
+.ctrl{display:flex;gap:8px;align-items:center}
+.round{width:60px;height:60px;flex:none;border-radius:50%;border:0;background:linear-gradient(135deg,var(--ba),var(--bb));color:#fff;font-size:1.25rem;cursor:pointer;box-shadow:0 6px 16px -4px rgba(80,60,200,.55)}
+.round:active{transform:scale(.93)}
+.pillbtn{flex:1;min-height:48px;border:2px solid var(--line);background:var(--card);border-radius:999px;font-weight:700;font-size:.85rem;cursor:pointer;padding:0 8px;white-space:nowrap}
+.pillbtn:active{transform:scale(.96)}
+
 .row2{display:flex;gap:6px;margin-bottom:8px;align-items:center}
 .row2 input{flex:1;width:0}
 
 .toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:999px;font-size:.88rem;z-index:40;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){.inner{transition:none}.flipwrap.slide{animation:none}}
 </style>
 </head>
 <body>
@@ -180,20 +217,33 @@ summary{cursor:pointer;font-weight:600;font-size:.9rem;padding:6px 0}
 
   <!-- ================= CARDS ================= -->
   <section id="tab-cards" class="hidden">
-    <div class="count" id="cCount"></div>
+    <div class="chead"><span class="cpill" id="cCount"></span></div>
     <div class="bar"><i id="cBar"></i></div>
-    <div class="flipwrap" id="flip">
-      <div class="inner">
-        <div class="face front"><small id="fLab"></small><div class="txt" id="fTxt"></div></div>
-        <div class="face back"><small id="bLab"></small><div class="txt" id="bTxt"></div></div>
+
+    <div class="deck" id="deck">
+      <div class="flipwrap" id="flip">
+        <div class="inner">
+          <div class="face front">
+            <span class="chip" id="fLab"></span>
+            <button class="say hidden" id="fSay" aria-label="Hear the German word">🔊</button>
+            <div class="txt" id="fTxt"></div>
+            <div class="tapnote">↻ tap to flip</div>
+          </div>
+          <div class="face back">
+            <span class="chip" id="bLab"></span>
+            <button class="say hidden" id="bSay" aria-label="Hear the German word">🔊</button>
+            <div class="txt" id="bTxt"></div>
+            <div class="tapnote">swipe for the next card</div>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="hintline">Tap the card to flip · swipe left or right for the next card</div>
-    <div class="navrow"><button id="cPrev" aria-label="Previous">◀</button><button id="cNext" aria-label="Next">▶</button></div>
-    <div class="tools">
-      <button class="btn" id="cShuf">🔀 Shuffle</button>
-      <button class="btn" id="cDir"></button>
-      <button class="btn" id="cSay">🔊 Hear German</button>
+
+    <div class="ctrl">
+      <button class="round" id="cPrev" aria-label="Previous card">◀</button>
+      <button class="pillbtn" id="cShuf">🔀 Shuffle</button>
+      <button class="pillbtn" id="cDir"></button>
+      <button class="round" id="cNext" aria-label="Next card">▶</button>
     </div>
 
     <details class="manage-wrap" id="cManage">
@@ -293,6 +343,7 @@ const saveAll = () => { save('tk_prefs', prefs); save('tk_wheel', items); save('
 // ---------- tabs ----------
 function showTab(t){
   prefs.tab = t; save('tk_prefs', prefs);
+  document.body.dataset.tab = t;
   ['wheel','dice','cards'].forEach(n => $('tab-' + n).classList.toggle('hidden', n !== t));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('on', b.dataset.t === t));
   window.scrollTo(0, 0);
@@ -499,6 +550,14 @@ setDie('die1', 5); setDie('die2', 2); renderDiceMode();
 // =====================================================================
 let deck = cards.slice(), idx = 0, flipped = false;
 
+// "der Freund" → coloured article badge (der = blue, die = red, das = green)
+function deHTML(t){
+  const m = String(t).match(/^(der|die|das)\s+(.+)$/i);
+  if (!m) return esc(t);
+  const a = m[1].toLowerCase();
+  return `<span class="art ${a}">${a}</span>${esc(m[2])}`;
+}
+
 function syncDeck(){
   const map = new Map(cards.map(c => [c.id, c]));
   const kept = deck.filter(c => map.has(c.id)).map(c => map.get(c.id));
@@ -507,10 +566,12 @@ function syncDeck(){
   if (idx >= deck.length) idx = Math.max(0, deck.length - 1);
 }
 function renderCard(){
-  const n = deck.length, c = deck[idx];
+  const n = deck.length, c = deck[idx], enFirst = prefs.dir === 'en';
   $('flip').classList.remove('flip'); flipped = false;
-  $('cDir').textContent = prefs.dir === 'en' ? '🔁 English → Deutsch' : '🔁 Deutsch → English';
-  $('cSay').classList.toggle('hidden', !hasTTS);
+  $('cDir').textContent = enFirst ? '🔁 EN → DE' : '🔁 DE → EN';
+  $('deck').classList.toggle('single', n < 2);
+  $('fSay').classList.toggle('hidden', !hasTTS || enFirst || !n);
+  $('bSay').classList.toggle('hidden', !hasTTS || !enFirst || !n);
   if (!n) {
     $('cCount').textContent = 'No cards yet';
     $('cBar').style.width = '0';
@@ -520,11 +581,10 @@ function renderCard(){
   }
   $('cCount').textContent = `${idx + 1} / ${n}`;
   $('cBar').style.width = ((idx + 1) / n * 100) + '%';
-  const enFirst = prefs.dir === 'en';
   $('fLab').textContent = enFirst ? 'English' : 'Deutsch';
-  $('fTxt').textContent = enFirst ? c.en : c.de;
+  $('fTxt').innerHTML = enFirst ? esc(c.en) : deHTML(c.de);
   $('bLab').textContent = enFirst ? 'Deutsch' : 'English';
-  $('bTxt').textContent = enFirst ? c.de : c.en;
+  $('bTxt').innerHTML = enFirst ? deHTML(c.de) : esc(c.en);
 }
 function flip(){
   if (!deck.length) return;
@@ -533,8 +593,11 @@ function flip(){
 async function go(d){
   if (!deck.length) return;
   idx = mod(idx + d, deck.length);
-  if (flipped) { flipped = false; $('flip').classList.remove('flip'); await sleep(200); }   // flip back before changing the text
+  if (flipped) { flipped = false; $('flip').classList.remove('flip'); await sleep(220); }   // flip back before changing the text
   renderCard();
+  const w = $('flip');
+  w.style.setProperty('--dx', (d > 0 ? 44 : -44) + 'px');
+  w.classList.remove('slide'); void w.offsetWidth; w.classList.add('slide');
 }
 function renderCardList(){
   $('cTotal').textContent = `(${cards.length})`;
@@ -585,11 +648,16 @@ $('cShuf').addEventListener('click', () => {
   idx = 0; renderCard(); toast('Shuffled 🔀');
 });
 $('cDir').addEventListener('click', () => { prefs.dir = prefs.dir === 'en' ? 'de' : 'en'; save('tk_prefs', prefs); renderCard(); });
-$('cSay').addEventListener('click', () => { if (deck[idx]) speak(deck[idx].de); });
+const sayCard = () => { if (deck[idx]) speak(deck[idx].de); };
+$('fSay').addEventListener('click', sayCard);
+$('bSay').addEventListener('click', sayCard);
 
 // tap = flip, swipe = next / previous
 let px = 0, py = 0, pActive = false;
-$('flip').addEventListener('pointerdown', e => { px = e.clientX; py = e.clientY; pActive = true; });
+$('flip').addEventListener('pointerdown', e => {
+  if (e.target.closest('.say')) return;                 // the speaker button handles its own tap
+  px = e.clientX; py = e.clientY; pActive = true;
+});
 $('flip').addEventListener('pointercancel', () => { pActive = false; });
 $('flip').addEventListener('pointerup', e => {
   if (!pActive) return; pActive = false;
