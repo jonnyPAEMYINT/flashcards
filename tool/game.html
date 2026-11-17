@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Schlangen &amp; Leitern</title>
+<style>
+:root{
+  --bg:#f4f1ea;--card:#ffffff;--ink:#1d2433;--muted:#6b7385;--line:#e2ddd0;
+  --accent:#2f5bea;--accent-ink:#fff;--good:#1c8a4f;--goodbg:#e3f5ea;--bad:#c2372f;--badbg:#fbe8e6;
+  --c1:#fdf6e3;--c2:#f1e4bf;--goal:#ffd666;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#14171f;--card:#1e2330;--ink:#eef0f6;--muted:#9aa2b6;--line:#2c3345;
+  --accent:#7b9bff;--accent-ink:#0f1320;--good:#5fd18f;--goodbg:#173026;--bad:#ff8a80;--badbg:#3a1d1d;
+  --c1:#2b3144;--c2:#232938;--goal:#7a5c10;}
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;justify-content:center}
+.app{width:100%;max-width:520px;height:100dvh;display:flex;flex-direction:column;gap:8px;
+  padding:max(10px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
+header{display:flex;align-items:center;justify-content:space-between;flex:none;gap:8px}
+h1{font-size:1.05rem;margin:0;white-space:nowrap}
+.badge{font-size:.78rem;color:var(--muted);margin-left:6px;font-weight:600}
+.mini{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 12px;font:inherit;font-size:.82rem;cursor:pointer;white-space:nowrap}
+
+.players{display:flex;gap:6px;flex:none}
+.pl{flex:1;min-width:0;border:2px solid var(--line);border-radius:10px;padding:4px 8px;background:var(--card);font-size:.76rem;line-height:1.25;opacity:.75}
+.pl.on{border-color:var(--accent);opacity:1}
+.pl b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl i{display:inline-block;width:.7em;height:.7em;border-radius:50%;margin-right:4px}
+.pl span{color:var(--muted)}
+
+.boardwrap{flex:1;min-height:0;container-type:size;display:grid;place-items:center}
+.board{--s:min(100cqw,100cqh);width:var(--s);height:var(--s);position:relative;border-radius:12px;overflow:hidden;border:2px solid var(--line);container-type:size}
+.grid{position:absolute;inset:0;display:grid;grid-template-columns:repeat(10,1fr);grid-template-rows:repeat(10,1fr)}
+.cell{position:relative;font-size:2.5cqw;padding:.2em .35em;color:var(--muted);font-weight:700}
+.cell.a{background:var(--c1)}.cell.b{background:var(--c2)}
+.cell.goal{background:var(--goal);color:var(--ink)}
+#svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#tokens{position:absolute;inset:0;pointer-events:none}
+.token{position:absolute;width:4.8%;height:4.8%;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.5);transform:translate(-50%,-50%);transition:left .18s ease,top .18s ease;z-index:3}
+.token.me{z-index:5;animation:pulse .9s ease-in-out infinite}
+@keyframes pulse{50%{transform:translate(-50%,-50%) scale(1.3)}}
+
+.card{flex:none;min-height:232px;max-height:46dvh;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+.msg{font-size:.85rem;color:var(--muted);min-height:1.3em;margin-bottom:4px}
+.tag{font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.prompt{font-size:1.5rem;font-weight:800;line-height:1.2;margin:2px 0}
+.prompt.small{font-size:1.1rem;line-height:1.3}
+.hint{font-size:.85rem;color:var(--muted);margin-bottom:8px;min-height:1.2em}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.opts.long{grid-template-columns:1fr}
+.opt{min-height:50px;border:2px solid var(--line);background:var(--bg);color:var(--ink);border-radius:12px;font:inherit;font-size:1.1rem;font-weight:700;cursor:pointer;padding:6px 8px}
+.opts.long .opt{font-size:.95rem;font-weight:600;min-height:44px;text-align:left;padding:8px 10px}
+.opt:active{transform:scale(.97)}
+.opt:disabled{cursor:default}
+.opt.good{background:var(--goodbg);border-color:var(--good);color:var(--good)}
+.opt.bad{background:var(--badbg);border-color:var(--bad);color:var(--bad)}
+.spk{border:0;background:var(--accent);color:var(--accent-ink);border-radius:50%;width:38px;height:38px;font-size:1.1rem;vertical-align:middle;cursor:pointer;margin-left:8px}
+.res{grid-column:1/-1;border-radius:12px;padding:10px 12px;text-align:center}
+.res.good{background:var(--goodbg);color:var(--good)}
+.res.bad{background:var(--badbg);color:var(--bad)}
+.res b{color:var(--ink);font-size:1.1rem;line-height:1.3}
+.tip{font-size:.82rem;color:var(--muted);margin-top:6px}
+.go{grid-column:1/-1;min-height:52px;border:0;border-radius:12px;background:var(--accent);color:var(--accent-ink);font:inherit;font-size:1.1rem;font-weight:700;cursor:pointer}
+.go.sec{background:transparent;color:var(--ink);border:2px solid var(--line)}
+.dieBox{grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:14px;min-height:112px;font-weight:700}
+.dieBox #dface{font-size:4.2rem;line-height:1}
+
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:12px;z-index:20}
+.ov.hidden{display:none}
+.sheet{background:var(--card);border-radius:20px;padding:18px;width:min(100%,420px);max-height:96dvh;overflow:auto;text-align:center}
+.sheet h2{margin:0 0 4px;font-size:1.25rem}
+.sheet p{margin:6px 0;color:var(--muted);font-size:.9rem}
+.sec-label{font-weight:700;margin:14px 0 6px;text-align:left;font-size:.95rem}
+.sec-label span{font-weight:400;color:var(--muted);font-size:.8rem}
+.sheet .chips{display:flex;gap:8px}
+.levels{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.focus{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.chip{flex:1;min-height:46px;border:2px solid var(--line);background:var(--bg);color:var(--ink);border-radius:12px;font:inherit;font-size:1.05rem;font-weight:700;cursor:pointer;padding:4px 6px}
+.focus .chip{font-size:.95rem;text-align:left;padding:6px 10px;line-height:1.2}
+.focus .chip small{display:block;font-weight:400;font-size:.72rem;opacity:.8}
+.chip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.sheet .go{width:100%;margin-top:14px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>🐍 Schlangen &amp; Leitern 🪜<span class="badge" id="badge"></span></h1>
+    <button class="mini" id="newBtn">⚙️ Options</button>
+  </header>
+
+  <div class="players" id="players"></div>
+
+  <div class="boardwrap">
+    <div class="board">
+      <div class="grid" id="grid"></div>
+      <svg id="svg" viewBox="0 0 100 100"></svg>
+      <div id="tokens"></div>
+    </div>
+  </div>
+
+  <div class="card" id="card">
+    <div class="msg" id="msg"></div>
+    <div id="body"></div>
+  </div>
+</div>
+
+<div class="ov" id="setup">
+  <div class="sheet">
+    <h2>🐍 Schlangen &amp; Leitern 🪜</h2>
+    <p>Answer correctly to roll the die. 🪜 take you up, 🐍 slide you down. First to 100 wins!</p>
+
+    <div class="sec-label">Players</div>
+    <div class="chips" id="chips">
+      <button class="chip" data-n="1">1</button>
+      <button class="chip" data-n="2">2</button>
+      <button class="chip" data-n="3">3</button>
+      <button class="chip" data-n="4">4</button>
+    </div>
+
+    <div class="sec-label">Level</div>
+    <div class="levels" id="levels"></div>
+    <p id="lvDesc"></p>
+
+    <div class="sec-label">Focus <span>(pick one or more)</span></div>
+    <div class="focus" id="focus"></div>
+    <p id="notes"></p>
+
+    <button class="go" id="startBtn">Start</button>
+  </div>
+</div>
+
+<div class="ov hidden" id="win">
+  <div class="sheet">
+    <h2 id="winTitle">🎉</h2>
+    <p id="winText"></p>
+    <button class="go" id="againBtn">Play again</button>
+  </div>
+</div>
+
+<script>
+// =====================================================================
+//  CONTENT
+// =====================================================================
+const LEVELS = {
+  A1:'A1 · Beginner (Anfänger)',
+  A2:'A2 · Elementary (Grundlagen)',
+  B1:'B1 · Intermediate (Mittelstufe)',
+  B2:'B2 · Upper-intermediate (Gute Mittelstufe)',
+  C1:'C1 · Advanced (Fortgeschritten)',
+  C2:'C2 · Proficient (Annähernd muttersprachlich)'
+};
+const FOCI = {
+  verben:  ['🔤','Verben','Conjugation & tenses'],
+  wort:    ['📚','Wortschatz','Vocabulary'],
+  gram:    ['🧱','Grammatik','Cases, connectors, word order'],
+  hoeren:  ['🎧','Hören','Listen & choose'],
+  sprechen:['🗣️','Sprechen','Say it aloud']
+};
+
+// ---- A1 verbs (generated). f = [ich, du, er/sie/es, ihr, wir/sie/Sie]
+const VERBS = [
+  {inf:'wohnen',   en:'to live (reside)', f:['wohne','wohnst','wohnt','wohnt','wohnen'],       obj:'in Berlin',       q:'Wo'},
+  {inf:'heißen',   en:'to be called',     f:['heiße','heißt','heißt','heißt','heißen'],       obj:'Maria',           q:'Wie'},
+  {inf:'leben',    en:'to live (be alive)',f:['lebe','lebst','lebt','lebt','leben'],           obj:'in Deutschland',  q:'Wo'},
+  {inf:'sprechen', en:'to speak',         f:['spreche','sprichst','spricht','sprecht','sprechen'], obj:'Deutsch',    q:'Was'},
+  {inf:'kommen',   en:'to come',          f:['komme','kommst','kommt','kommt','kommen'],      obj:'aus Spanien',     q:'Woher'},
+  {inf:'machen',   en:'to do / make',     f:['mache','machst','macht','macht','machen'],      obj:'Hausaufgaben',    q:'Was'},
+  {inf:'lernen',   en:'to learn',         f:['lerne','lernst','lernt','lernt','lernen'],      obj:'Deutsch',         q:'Was'},
+  {inf:'arbeiten', en:'to work',          f:['arbeite','arbeitest','arbeitet','arbeitet','arbeiten'], obj:'bei Siemens', q:'Wo'},
+  {inf:'spielen',  en:'to play',          f:['spiele','spielst','spielt','spielt','spielen'], obj:'Fußball',         q:'Was'},
+  {inf:'trinken',  en:'to drink',         f:['trinke','trinkst','trinkt','trinkt','trinken'], obj:'Kaffee',          q:'Was'},
+  {inf:'essen',    en:'to eat',           f:['esse','isst','isst','esst','essen'],            obj:'Pizza',           q:'Was'},
+  {inf:'fahren',   en:'to drive / go (by vehicle)', f:['fahre','fährst','fährt','fahrt','fahren'], obj:'nach Hamburg', q:'Wohin'},
+  {inf:'haben',    en:'to have',          f:['habe','hast','hat','habt','haben'],             obj:'einen Hund',      q:'Was'},
+  {inf:'sein',     en:'to be',            f:['bin','bist','ist','seid','sind'],               obj:'müde',            q:'Wie'},
+  {inf:'gehen',    en:'to go',            f:['gehe','gehst','geht','geht','gehen'],           obj:'in die Schule',   q:'Wohin'},
+  {inf:'lesen',    en:'to read',          f:['lese','liest','liest','lest','lesen'],          obj:'ein Buch',        q:'Was'},
+  {inf:'sehen',    en:'to see',           f:['sehe','siehst','sieht','seht','sehen'],         obj:'einen Film',      q:'Was'},
+  {inf:'schlafen', en:'to sleep',         f:['schlafe','schläfst','schläft','schlaft','schlafen'], obj:'lange',      q:'Wie lange'},
+  {inf:'kochen',   en:'to cook',          f:['koche','kochst','kocht','kocht','kochen'],      obj:'Suppe',           q:'Was'},
+  {inf:'kaufen',   en:'to buy',           f:['kaufe','kaufst','kauft','kauft','kaufen'],      obj:'Brot',            q:'Was'},
+  {inf:'studieren',en:'to study (at uni)',f:['studiere','studierst','studiert','studiert','studieren'], obj:'Medizin', q:'Was'}
+];
+const PRON = [
+  {p:'ich', i:0},{p:'du', i:1},{p:'er', i:2},
+  {p:'sie', i:2, hint:'she'},{p:'ihr', i:3},{p:'wir', i:4},
+  {p:'sie', i:4, hint:'they'},{p:'Sie', i:4, hint:'formal you'}
+];
+
+// ---- Item format: [sentence with ____ (or '' for "which sentence is correct"), answer, wrong1, wrong2, wrong3, tip]
+const VB = {
+  A2:[
+    ['Ich ____ heute leider nicht kommen.','kann','können','kannst','könnt','können: ich kann'],
+    ['Du ____ morgen früh aufstehen.','musst','müssen','muss','müsst','müssen: du musst'],
+    ['Wir ____ am Wochenende ins Kino gehen.','wollen','will','willst','wollt','wollen: wir wollen'],
+    ['Ich stehe jeden Tag um sechs Uhr ____.','auf','an','ab','aus','aufstehen: ich stehe auf (trennbares Verb)'],
+    ['Gestern habe ich einen Film ____.','gesehen','gesehe','sah','sehen','Perfekt: haben + Partizip II (sehen → gesehen)'],
+    ['Wir ____ gestern nach Berlin gefahren.','sind','haben','hat','bin','Bewegung → sein: wir sind gefahren'],
+    ['Ich ____ mich auf das Wochenende.','freue','freust','freuen','freut','sich freuen: ich freue mich'],
+    ['Letzte Woche ____ ich krank.','war','bin','wäre','gewesen','Präteritum von sein: ich war'],
+    ['Darf ich Sie etwas ____?','fragen','frage','gefragt','fragt','Modalverb + Infinitiv am Ende']
+  ],
+  B1:[
+    ['Als Kind ____ ich oft im Wald.','spielte','spiele','gespielt','spielt','Präteritum (regelmäßig): spielen → spielte'],
+    ['Er ____ gestern sehr spät nach Hause.','kam','kommte','gekommen','kommt','Präteritum (unregelmäßig): kommen → kam'],
+    ['Wenn ich mehr Zeit ____, würde ich öfter reisen.','hätte','habe','hatte','hat','Konjunktiv II von haben: hätte'],
+    ['An deiner Stelle ____ ich das nicht tun.','würde','werde','wurde','würdest','Konjunktiv II: würde + Infinitiv'],
+    ['Das Haus ____ 1990 gebaut.','wurde','wird','würde','worden','Passiv Präteritum: wurde + Partizip II'],
+    ['Hast du schon ____?','gegessen','gegesst','gessen','geessen','Partizip II: essen → gegessen'],
+    ['Sie ____ sich lange auf die Reise vorbereitet.','hat','ist','wird','wurde','sich vorbereiten + haben (Perfekt)'],
+    ['Ich ____ gern früher aufgestanden, aber ich war zu müde.','wäre','hätte','würde','wurde','aufstehen + sein: ich wäre aufgestanden']
+  ],
+  B2:[
+    ['Der Minister erklärte, das Problem ____ bereits gelöst.','sei','sein','seien','seid','Konjunktiv I (indirekte Rede): es sei'],
+    ['Nachdem sie gegessen ____, gingen sie spazieren.','hatten','haben','hätten','waren','Plusquamperfekt: hatten + Partizip II'],
+    ['Die Rechnung muss bis Freitag bezahlt ____.','werden','worden','geworden','wurden','Passiv mit Modalverb: Partizip II + werden'],
+    ['Das Fenster ____ gestern repariert worden.','ist','hat','wird','wurde','Perfekt Passiv: ist … worden'],
+    ['Wenn er rechtzeitig losgefahren ____, hätte er den Zug erreicht.','wäre','war','hätte','würde','Konjunktiv II Vergangenheit: wäre losgefahren'],
+    ['Bis nächstes Jahr ____ ich meinen Abschluss gemacht haben.','werde','würde','wurde','habe','Futur II: werden + Partizip II + haben'],
+    ['Der Zug soll wegen des Sturms ausgefallen ____.','sein','haben','werden','worden','sollen + Partizip II + sein (Gerücht: angeblich)'],
+    ['Sie tut so, als ____ sie nichts davon gewusst.','hätte','hat','hatte','hätten','als ob / als + Konjunktiv II']
+  ],
+  C1:[
+    ['Der Antrag ____ sich leicht ausfüllen.','lässt','lasst','lasse','lassen','sich lassen + Infinitiv = Passiversatz'],
+    ['Die Regierung hat beschlossen, die Steuern zu ____.','senken','gesenkt','senkt','senke','zu + Infinitiv nach beschließen'],
+    ['Die Angelegenheit ____ zurzeit noch geprüft.','wird','wurde','worden','werden','Vorgangspassiv Präsens: wird + Partizip II'],
+    ['Er behauptete, nie davon gewusst zu ____.','haben','sein','werden','hat','Infinitiv Perfekt: gewusst zu haben'],
+    ['Hätte ich das gewusst, ____ ich anders entschieden.','hätte','würde','habe','hatte','Konjunktiv II Vergangenheit: hätte + Partizip II'],
+    ['Der Redner betonte, man ____ die Ergebnisse kritisch hinterfragen.','müsse','müssen','musst','müsst','Konjunktiv I (indirekte Rede): man müsse'],
+    ['Die Ergebnisse ____ sich sehen lassen.','können','kann','kannst','könnt','sich sehen lassen können = beeindruckend sein']
+  ],
+  C2:[
+    ['Er verhielt sich, als ____ nichts geschehen.','wäre','war','ist','wird','als ob / als + Konjunktiv II: als wäre …'],
+    ['Wäre er nicht so stur gewesen, ____ die Sache anders ausgegangen.','wäre','hätte','würde','war','ausgehen + sein: wäre ausgegangen'],
+    ['Es ____ nicht verschwiegen werden, dass es Fehler gab.','darf','dürfen','dürft','darfst','Passiv mit Modalverb: Es darf nicht … werden'],
+    ['Wie dem auch ____, wir müssen jetzt handeln.','sei','ist','wäre','sein','feste Wendung (Konjunktiv I): wie dem auch sei'],
+    ['Der Verdächtige soll das Land verlassen ____.','haben','sein','werden','hat','sollen + Infinitiv Perfekt = angeblich'],
+    ['Man ____ meinen, die Zeit stehe still.','möchte','möchten','mögt','magst','man möchte meinen = man könnte denken'],
+    ['Hätte er nur zugehört, so ____ ihm der Fehler nicht unterlaufen.','wäre','hätte','war','ist','unterlaufen + sein: wäre unterlaufen']
+  ]
+};
+
+const GR = {
+  A1:[
+    ['____ Hund ist groß.','Der','Die','Das','Den','der Hund (maskulin)'],
+    ['Ich habe ____ Katze.','eine','ein','einen','einem','die Katze → eine Katze'],
+    ['Ich kaufe ____ Apfel.','einen','ein','eine','einem','Akkusativ maskulin: einen'],
+    ['____ kommst du? – Aus Italien.','Woher','Wo','Wohin','Wann','woher = from where'],
+    ['Ich habe ____ Geld.','kein','nicht','keine','keinen','Negation von Nomen: kein / keine'],
+    ['','Heute gehe ich nach Hause.','Heute ich gehe nach Hause.','Ich heute gehe nach Hause.','Gehe heute ich nach Hause.','Das Verb steht auf Position 2'],
+    ['Ich fahre ____ dem Bus.','mit','für','von','zu','mit + Dativ'],
+    ['Das ist ____ Buch.','mein','meine','meinen','meiner','Buch (neutrum) → mein Buch']
+  ],
+  A2:[
+    ['Ich gebe ____ Mann das Buch.','dem','den','der','das','Dativ maskulin: dem'],
+    ['Das Buch liegt auf ____ Tisch.','dem','den','der','die','Wo? → Dativ'],
+    ['Ich lege das Buch auf ____ Tisch.','den','dem','der','die','Wohin? → Akkusativ'],
+    ['Ich bleibe zu Hause, ____ ich krank bin.','weil','denn','deshalb','damit','weil → Verb am Ende'],
+    ['Mein Bruder ist ____ als ich.','größer','groß','am größten','großer','Komparativ + als'],
+    ['Wir fahren im Sommer ____ Spanien.','nach','in','zu','an','Länder ohne Artikel: nach'],
+    ['Gestern ____ ich meiner Mutter geholfen.','habe','bin','hat','wurde','helfen + haben (Perfekt)'],
+    ['','Weil ich müde bin, gehe ich ins Bett.','Weil ich bin müde, gehe ich ins Bett.','Weil ich müde bin, ich gehe ins Bett.','Weil bin ich müde, gehe ich ins Bett.','weil → Verb am Ende; danach Inversion']
+  ],
+  B1:[
+    ['Das ist der Mann, ____ mir geholfen hat.','der','den','dem','dessen','Relativpronomen Nominativ maskulin: der'],
+    ['Das ist die Frau, ____ ich gestern getroffen habe.','die','der','das','dem','Relativpronomen Akkusativ feminin: die'],
+    ['Er ist ein ____ Student.','guter','gute','gutes','guten','ein + maskulin Nominativ → -er'],
+    ['____ es regnet, gehen wir trotzdem spazieren.','Obwohl','Weil','Damit','Dass','obwohl = although (Gegensatz)'],
+    ['____ des schlechten Wetters bleiben wir zu Hause.','Wegen','Mit','Zu','Von','wegen + Genitiv'],
+    ['Ich frage mich, ____ er kommt.','ob','dass','wenn','weil','indirekte Ja/Nein-Frage: ob'],
+    ['Sie lernt Deutsch, ____ sie in Deutschland arbeiten kann.','damit','ob','dass','falls','damit = so that (Zweck)'],
+    ['','Ich glaube, dass er morgen kommt.','Ich glaube, dass er kommt morgen.','Ich glaube, dass kommt er morgen.','Ich glaube, dass morgen er kommt.','dass-Satz: Verb am Ende']
+  ],
+  B2:[
+    ['Je mehr man übt, ____ besser wird man.','desto','als','je','wie','je … desto + Komparativ'],
+    ['Weder er ____ sie hat die Aufgabe verstanden.','noch','oder','und','sondern','weder … noch'],
+    ['Das Thema, ____ wir gesprochen haben, ist wichtig.','über das','über dem','über die','über den','sprechen über + Akk.; Thema (n.) → das'],
+    ['Der von ihm ____ Brief liegt auf dem Tisch.','geschriebene','schreibende','geschriebenen','geschrieben','Partizip II als Attribut: der geschriebene Brief'],
+    ['Aufgrund ____ Krankheit blieb sie zu Hause.','ihrer','ihre','ihren','ihr','aufgrund + Genitiv (feminin: ihrer)'],
+    ['Er ist nicht nur intelligent, ____ auch sehr fleißig.','sondern','aber','denn','oder','nicht nur … sondern auch'],
+    ['Wir haben uns ____ den Plan geeinigt.','auf','über','für','mit','sich einigen auf + Akkusativ'],
+    ['','Hätte ich mehr Zeit gehabt, wäre ich gekommen.','Hätte ich mehr Zeit gehabt, ich wäre gekommen.','Wenn hätte ich mehr Zeit gehabt, wäre ich gekommen.','Hätte mehr Zeit ich gehabt, wäre ich gekommen.','Konditionalsatz ohne wenn: Verb an erster Stelle']
+  ],
+  C1:[
+    ['Es kommt ____ an, wie sich die Lage entwickelt.','darauf','daran','davon','dafür','es kommt darauf an (ankommen auf + Akk.)'],
+    ['Die Studie, ____ Ergebnisse veröffentlicht wurden, ist umstritten.','deren','dessen','denen','die','Relativpronomen Genitiv: Studie (f.) → deren'],
+    ['Der Autor, ____ Buch ich gelesen habe, lebt in Wien.','dessen','deren','dem','den','Relativpronomen Genitiv: Autor (m.) → dessen'],
+    ['Er tat so, ____ er nichts gehört hätte.','als ob','sodass','obwohl','indem','so tun, als ob + Konjunktiv II'],
+    ['Er zweifelt ____, dass das Projekt gelingt.','daran','darauf','darüber','dafür','zweifeln an + Dativ → daran'],
+    ['Die im Jahr 2020 ____ Studie wurde viel zitiert.','veröffentlichte','veröffentlichende','veröffentlichten','veröffentlicht','Partizip II als Attribut: die veröffentlichte Studie'],
+    ['Seine Aussage war ____ widersprüchlich, dass niemand ihr glaubte.','so','sehr','zu','genauso','so … dass (Konsekutivsatz)'],
+    ['','Die Frage, ob sich der Aufwand lohnt, bleibt umstritten.','Die Frage, ob lohnt sich der Aufwand, bleibt umstritten.','Die Frage, ob der Aufwand lohnt sich, bleibt umstritten.','Die Frage ob, sich der Aufwand lohnt, bleibt umstritten.','ob-Satz: Verb am Ende; Komma vor ob']
+  ],
+  C2:[
+    ['Die Frau, ____ Hilfe ich angewiesen bin, ist verreist.','auf deren','auf die','auf der','auf denen','angewiesen sein auf + Akk.; Genitiv-Relativpronomen: deren'],
+    ['____ hatte er das Zimmer betreten, da klingelte das Telefon.','Kaum','Nur','Ganz','Fast','kaum … da = hardly … when'],
+    ['Die Kosten ____ sich auf rund zwei Millionen Euro.','belaufen','beläuft','belaufst','belauft','sich belaufen auf (Plural: belaufen)'],
+    ['Ich hätte nicht gedacht, dass er so schnell ____ würde.','aufgeben','aufgegeben','aufzugeben','gibt auf','würde + Infinitiv am Ende'],
+    ['Er verbrachte den Abend damit, alte Briefe ____.','zu lesen','lesen','gelesen','zu gelesen','damit + zu + Infinitiv'],
+    ['Die Teilnehmer wurden aufgefordert, ____ Plätze einzunehmen.','ihre','ihren','ihrer','ihr','Akkusativ Plural: ihre Plätze'],
+    ['Ich bestehe ____, dass die Regeln eingehalten werden.','darauf','daran','dabei','darüber','bestehen auf + Dativ → darauf'],
+    ['','Den Vorschlag, den er gemacht hatte, lehnte sie ab.','Den Vorschlag, den er hatte gemacht, lehnte sie ab.','Den Vorschlag, er gemacht hatte den, lehnte sie ab.','Den Vorschlag, den hatte er gemacht, lehnte sie ab.','Relativsatz: Verb am Ende (gemacht hatte)']
+  ]
+};
+
+// ---- Wortschatz: [German, English]
+const WORT = {
+  A1:[['das Haus','house'],['die Schule','school'],['der Tisch','table'],['das Wasser','water'],['die Familie','family'],['der Freund','friend (male)'],['das Brot','bread'],['die Straße','street'],['der Apfel','apple'],['die Katze','cat'],['das Auto','car'],['heute','today'],['gern','gladly'],['groß','big / tall']],
+  A2:[['die Wohnung','apartment / flat'],['der Termin','appointment'],['die Erfahrung','experience'],['der Urlaub','holiday / vacation'],['die Rechnung','bill / invoice'],['sich erinnern','to remember'],['vergessen','to forget'],['bestellen','to order'],['anrufen','to call (phone)'],['der Ausflug','day trip / excursion'],['günstig','cheap / favourable'],['der Schlüssel','key'],['die Hausaufgabe','homework']],
+  B1:[['die Meinung','opinion'],['die Umwelt','environment'],['die Gesellschaft','society'],['sich bewerben','to apply (for a job)'],['der Vorschlag','suggestion / proposal'],['die Entscheidung','decision'],['verbessern','to improve'],['erreichen','to reach / achieve'],['zuverlässig','reliable'],['die Verantwortung','responsibility'],['der Unterschied','difference'],['vermeiden','to avoid']],
+  B2:[['die Auswirkung','impact / effect'],['die Voraussetzung','prerequisite / condition'],['beeinflussen','to influence'],['der Zusammenhang','connection / context'],['verfügbar','available'],['die Herausforderung','challenge'],['nachhaltig','sustainable'],['die Entwicklung','development'],['bewältigen','to cope with / manage'],['das Ausmaß','extent / scale'],['vorübergehend','temporary'],['die Umsetzung','implementation']],
+  C1:[['die Nachfrage','demand'],['der Wandel','change / transformation'],['die Anforderung','requirement'],['erheblich','considerable'],['einschränken','to restrict'],['die Zurückhaltung','reserve / restraint'],['das Gleichgewicht','balance'],['beiläufig','casual / in passing'],['bemängeln','to criticize / find fault with'],['der Aufschwung','upswing / boom'],['umstritten','controversial'],['etwas infrage stellen','to question something']],
+  C2:[['unabdingbar','indispensable'],['sich anmaßen','to presume / dare (arrogantly)'],['verklären','to romanticize'],['flüchtig','fleeting / cursory'],['nüchtern','sober / matter-of-fact'],['das Befinden','condition / well-being'],['beschönigen','to gloss over'],['die Beharrlichkeit','persistence'],['widerspenstig','unruly / stubborn'],['anrüchig','disreputable / shady'],['die Bagatelle','trifle'],['sich hinwegsetzen über','to disregard / ride roughshod over']]
+};
+
+// ---- Sentences for Hören & Sprechen: [German, English]
+const SENT = {
+  A1:[['Ich heiße Anna und wohne in Berlin.','My name is Anna and I live in Berlin.'],['Wie geht es dir?','How are you?'],['Ich komme aus Spanien.','I come from Spain.'],['Sprichst du Deutsch?','Do you speak German?'],['Wir lernen heute Deutsch.','We are learning German today.'],['Er trinkt gern Kaffee.','He likes drinking coffee.'],['Ich habe einen Hund.','I have a dog.'],['Wo wohnt ihr?','Where do you live?']],
+  A2:[['Ich muss morgen früh aufstehen.','I have to get up early tomorrow.'],['Gestern habe ich einen interessanten Film gesehen.','Yesterday I watched an interesting film.'],['Könnten Sie mir bitte helfen?','Could you please help me?'],['Wir sind letztes Jahr nach Italien gefahren.','We went to Italy last year.'],['Ich möchte einen Tisch für zwei Personen reservieren.','I would like to reserve a table for two.'],['Am Wochenende besuche ich meine Großeltern.','At the weekend I visit my grandparents.'],['Es tut mir leid, ich habe den Bus verpasst.','I am sorry, I missed the bus.'],['Wie komme ich am besten zum Bahnhof?','What is the best way to get to the station?']],
+  B1:[['Wenn ich mehr Zeit hätte, würde ich öfter ins Fitnessstudio gehen.','If I had more time, I would go to the gym more often.'],['Ich habe mich für die Stelle beworben, weil ich neue Erfahrungen sammeln möchte.','I applied for the job because I want to gain new experience.'],['Obwohl es geregnet hat, sind wir spazieren gegangen.','Although it rained, we went for a walk.'],['Meiner Meinung nach sollte man mehr für die Umwelt tun.','In my opinion, one should do more for the environment.'],['Können Sie mir sagen, wo die nächste Apotheke ist?','Can you tell me where the nearest pharmacy is?'],['Ich freue mich darauf, dich bald wiederzusehen.','I am looking forward to seeing you again soon.'],['Das Konzert wurde wegen des schlechten Wetters abgesagt.','The concert was cancelled because of the bad weather.'],['Ich interessiere mich sehr für deutsche Geschichte.','I am very interested in German history.']],
+  B2:[['Die Auswirkungen des Klimawandels sind nicht mehr zu übersehen.','The effects of climate change can no longer be overlooked.'],['Hätte ich das früher gewusst, hätte ich anders entschieden.','Had I known that earlier, I would have decided differently.'],['Der Vertrag muss bis Ende des Monats unterschrieben werden.','The contract has to be signed by the end of the month.'],['Es kommt darauf an, wie sich die Situation entwickelt.','It depends on how the situation develops.'],['Nachdem sie ihr Studium abgeschlossen hatte, zog sie nach Hamburg.','After she had finished her studies, she moved to Hamburg.'],['Je mehr man übt, desto besser wird man.','The more you practise, the better you get.'],['Die Regierung plant, die Steuern im nächsten Jahr zu senken.','The government plans to lower taxes next year.'],['Er behauptete, er sei zu dem Zeitpunkt nicht im Büro gewesen.','He claimed he had not been in the office at that time.']],
+  C1:[['Die Ergebnisse der Studie lassen keine eindeutigen Schlüsse zu.','The results of the study do not allow any clear conclusions.'],['Man sollte die Lage nüchtern betrachten, anstatt voreilige Urteile zu fällen.','One should view the situation soberly instead of passing hasty judgements.'],['Das Projekt scheiterte nicht zuletzt an mangelnder Kommunikation.','The project failed not least because of a lack of communication.'],['Angesichts der gestiegenen Kosten müssen wir unsere Pläne überdenken.','In view of the increased costs, we have to rethink our plans.'],['Er zeigte sich erstaunlich gelassen, als ob nichts geschehen wäre.','He appeared remarkably calm, as if nothing had happened.'],['Die Frage, ob sich der Aufwand lohnt, bleibt umstritten.','The question of whether the effort is worthwhile remains controversial.'],['Es ist unabdingbar, dass alle Beteiligten rechtzeitig informiert werden.','It is essential that everyone involved is informed in good time.'],['Seiner Ansicht nach hätte man die Entscheidung früher treffen müssen.','In his view, the decision should have been made earlier.']],
+  C2:[['Wie dem auch sei, die Verantwortung lässt sich nicht einfach abwälzen.','Be that as it may, responsibility cannot simply be shifted onto others.'],['Er hat sich über sämtliche Bedenken hinweggesetzt, ohne mit der Wimper zu zucken.','He disregarded all concerns without batting an eyelid.'],['Kaum hatte sie den Raum betreten, verstummte das Gespräch.','Hardly had she entered the room when the conversation fell silent.'],['Es wäre vermessen zu behaupten, das Problem sei damit gelöst.','It would be presumptuous to claim that the problem is thereby solved.'],['Die Beharrlichkeit, mit der sie ihr Ziel verfolgte, nötigte allen Respekt ab.','The persistence with which she pursued her goal commanded everyone\'s respect.'],['Man hätte meinen können, die Zeit sei stehen geblieben.','One might have thought that time had stood still.'],['Dem Vernehmen nach soll die Entscheidung bereits gefallen sein.','Reportedly, the decision has already been made.'],['Bei aller Wertschätzung muss ich dem entschieden widersprechen.','With all due respect, I must firmly disagree with that.']]
+};
+
+const SNAKE_COLS = ['#2e9e5b','#c0392b','#8e44ad','#e08a00','#2a7fb8'];
+const LADDERS = {4:14, 9:31, 20:38, 28:84, 40:59, 51:67, 63:81, 71:91};
+const SNAKES  = {17:7, 54:34, 62:19, 64:60, 87:24, 93:73, 95:75, 99:78};
+const COLORS = [['Red','#e5484d'],['Blue','#3e63dd'],['Green','#30a46c'],['Yellow','#f5a524']];
+const DIE = '⚀⚁⚂⚃⚄⚅';
+
+// =====================================================================
+//  HELPERS
+// =====================================================================
+const $ = id => document.getElementById(id);
+const rnd = n => Math.floor(Math.random()*n);
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const shuffle = a => { for (let i = a.length-1; i > 0; i--) { const j = rnd(i+1); [a[i],a[j]] = [a[j],a[i]]; } return a; };
+const norm = s => s.toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss');
+const words = s => norm(s).split(/[^a-z]+/).filter(Boolean);
+function match(target, spoken){
+  const T = words(target), S = new Set(words(spoken));
+  return T.length ? T.filter(w => S.has(w)).length / T.length : 0;
+}
+
+const hasTTS = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, recOn = false;
+
+function say(text){
+  if (!hasTTS) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'de-DE'; u.rate = .9;
+    const v = speechSynthesis.getVoices().find(v => v.lang && v.lang.toLowerCase().startsWith('de'));
+    if (v) u.voice = v;
+    speechSynthesis.speak(u);
+  } catch(e) {}
+}
+function stopAudio(){
+  try { hasTTS && speechSynthesis.cancel(); } catch(e) {}
+  try { rec && rec.abort(); } catch(e) {}
+  recOn = false;
+}
+
+// =====================================================================
+//  SETTINGS
+// =====================================================================
+let cfg = {n:2, level:'A1', focus:['verben','wort','gram']};
+try {
+  const c = JSON.parse(localStorage.getItem('sl_cfg') || 'null');
+  if (c) {
+    if (c.n >= 1 && c.n <= 4) cfg.n = c.n;
+    if (LEVELS[c.level]) cfg.level = c.level;
+    if (Array.isArray(c.focus)) { const f = c.focus.filter(k => FOCI[k]); if (f.length) cfg.focus = f; }
+  }
+} catch(e) {}
+
+function buildSetup(){
+  $('levels').innerHTML = Object.keys(LEVELS).map(l => `<button class="chip" data-l="${l}">${l}</button>`).join('');
+  $('focus').innerHTML = Object.entries(FOCI).map(([k, f]) => `<button class="chip" data-k="${k}">${f[0]} ${f[1]}<small>${f[2]}</small></button>`).join('');
+  syncSetup();
+}
+function syncSetup(){
+  document.querySelectorAll('#chips .chip').forEach(c => c.classList.toggle('on', +c.dataset.n === cfg.n));
+  document.querySelectorAll('#levels .chip').forEach(c => c.classList.toggle('on', c.dataset.l === cfg.level));
+  document.querySelectorAll('#focus .chip').forEach(c => c.classList.toggle('on', cfg.focus.includes(c.dataset.k)));
+  $('lvDesc').textContent = LEVELS[cfg.level];
+  const notes = [];
+  if (cfg.focus.includes('hoeren') && !hasTTS) notes.push('🎧 Audio is not available on this device, so Hören will be skipped.');
+  if (cfg.focus.includes('sprechen') && !SR) notes.push('🗣️ Speech recognition is not supported in this browser, so Sprechen uses self-check.');
+  $('notes').textContent = notes.join(' ');
+}
+
+// =====================================================================
+//  QUESTION GENERATORS
+// =====================================================================
+let recent = [];
+function fresh(gen){
+  for (let i = 0; i < 8; i++) {
+    const q = gen();
+    if (!recent.includes(q.key)) { recent.push(q.key); if (recent.length > 10) recent.shift(); return q; }
+  }
+  return gen();
+}
+
+function item(it, tag, kp){
+  const [s, a, w1, w2, w3, tip] = it, gap = s.includes('____');
+  return {
+    kind:'mc', tag, prompt: gap ? s : 'Which sentence is correct?',
+    hint: gap ? 'Choose the right word.' : 'Check the word order.',
+    opts: shuffle([a, w1, w2, w3]), ans: a,
+    full: gap ? s.replace('____', '<u>' + a + '</u>') : a,
+    tip, long: !gap, key: kp + '|' + (gap ? s : a)
+  };
+}
+
+function genVerb(lv){
+  if (lv !== 'A1') return item(VB[lv][rnd(VB[lv].length)], '🔤 Verben', 'vb' + lv);
+  const v = VERBS[rnd(VERBS.length)], p = PRON[rnd(PRON.length)];
+  const type = ['form','gap','ques'][rnd(3)];
+  const ans = v.f[p.i];
+  const opts = shuffle([ans, ...shuffle([...new Set(v.f)].filter(x => x !== ans)).slice(0, 3)]);
+  const ph = p.hint ? ` · ${p.p} = ${p.hint}` : '';
+  let tag, prompt, hint, full;
+  if (type === 'form') {
+    tag = '🔤 Conjugate'; prompt = `${p.p} + ${v.inf}`; hint = v.en + ph; full = `${p.p} ${ans}`;
+  } else if (type === 'gap') {
+    tag = '🔤 Fill the gap'; prompt = `${cap(p.p)} ____ ${v.obj}.`; hint = `(${v.inf}) ${v.en}${ph}`;
+    full = `${cap(p.p)} <u>${ans}</u> ${v.obj}.`;
+  } else {
+    tag = '🔤 Complete the question'; prompt = `${v.q} ____ ${p.p}?`; hint = `(${v.inf}) ${v.en}${ph}`;
+    full = `${v.q} <u>${ans}</u> ${p.p}?`;
+  }
+  return {kind:'mc', tag, prompt, hint, opts, ans, full, tip:'', long:false, key:`a1|${v.inf}|${p.p}${p.hint||''}|${type}`};
+}
+
+function genGram(lv){ return item(GR[lv][rnd(GR[lv].length)], '🧱 Grammatik', 'g' + lv); }
+
+function genWort(lv){
+  const pool = WORT[lv], [de, en] = pool[rnd(pool.length)];
+  const others = shuffle(pool.filter(x => x[0] !== de)).slice(0, 3);
+  const toEn = rnd(2) === 0;
+  return {
+    kind:'mc', tag:'📚 Wortschatz', long:false, tip:'',
+    prompt: toEn ? de : en,
+    hint: toEn ? 'What does it mean?' : 'Which German word?',
+    opts: toEn ? shuffle([en, ...others.map(x => x[1])]) : shuffle([de, ...others.map(x => x[0])]),
+    ans: toEn ? en : de, full: `${de} = ${en}`, key: 'w|' + de
+  };
+}
+
+function genHoeren(lv){
+  const pool = SENT[lv], [de, en] = pool[rnd(pool.length)];
+  const others = shuffle(pool.filter(x => x[0] !== de)).slice(0, 3).map(x => x[0]);
+  return {
+    kind:'hoeren', tag:'🎧 Hören', prompt:'Listen and choose', hint:'What did you hear? Tap 🔊 to hear it again.',
+    opts: shuffle([de, ...others]), ans: de, full: de, tip: en, say: de, long: true, key: 'h|' + de
+  };
+}
+
+function genSprechen(lv){
+  const pool = SENT[lv], [de, en] = pool[rnd(pool.length)];
+  return {
+    kind:'sprechen', tag:'🗣️ Sprechen', prompt: de,
+    hint: en + (SR ? '' : ' · Say it aloud, then tap ✓'),
+    ans: de, full: de, tip: '', say: de, long: false, key: 's|' + de
+  };
+}
+const GENS = {verben:genVerb, wort:genWort, gram:genGram, hoeren:genHoeren, sprechen:genSprechen};
+
+// =====================================================================
+//  BOARD DRAWING
+// =====================================================================
+function rc(n){ const row = Math.floor((n-1)/10); let col = (n-1)%10; if (row % 2) col = 9 - col; return {row, col}; }
+const ctr = n => { const {row, col} = rc(n); return [col*10 + 5, (9-row)*10 + 5]; };
+
+function buildBoard(){
+  let h = '';
+  for (let vr = 0; vr < 10; vr++) {
+    const row = 9 - vr;
+    for (let col = 0; col < 10; col++) {
+      const n = row*10 + (row % 2 ? 9 - col : col) + 1;
+      const cls = n === 100 ? 'goal' : ((row + col) % 2 ? 'b' : 'a');
+      h += `<div class="cell ${cls}">${n}${n === 100 ? ' 🏁' : ''}</div>`;
+    }
+  }
+  $('grid').innerHTML = h;
+  let s = '';
+  Object.entries(LADDERS).forEach(([a, b]) => s += ladderSVG(+a, +b));
+  Object.entries(SNAKES).forEach(([a, b], i) => s += snakeSVG(+a, +b, SNAKE_COLS[i % SNAKE_COLS.length]));
+  $('svg').innerHTML = s;
+}
+function ladderSVG(a, b){
+  const [x1,y1] = ctr(a), [x2,y2] = ctr(b);
+  const dx = x2-x1, dy = y2-y1, L = Math.hypot(dx, dy), ux = dx/L, uy = dy/L;
+  const nx = -uy*1.5, ny = ux*1.5;
+  let s = `<g stroke="#b9772e" stroke-linecap="round" opacity=".95">`;
+  s += `<line x1="${x1+nx}" y1="${y1+ny}" x2="${x2+nx}" y2="${y2+ny}" stroke-width="1.1"/>`;
+  s += `<line x1="${x1-nx}" y1="${y1-ny}" x2="${x2-nx}" y2="${y2-ny}" stroke-width="1.1"/>`;
+  const n = Math.max(2, Math.floor(L/4.5));
+  for (let i = 1; i < n; i++) {
+    const t = i/n, px = x1 + dx*t, py = y1 + dy*t;
+    s += `<line x1="${px+nx}" y1="${py+ny}" x2="${px-nx}" y2="${py-ny}" stroke-width=".8"/>`;
+  }
+  return s + `</g>`;
+}
+function snakeSVG(a, b, col){
+  const [x1,y1] = ctr(a), [x2,y2] = ctr(b);
+  const mx = (x1+x2)/2, my = (y1+y2)/2, dx = x2-x1, dy = y2-y1, L = Math.hypot(dx, dy);
+  const nx = -dy/L, ny = dx/L, amp = Math.min(7, L/4), ux = dx/L, uy = dy/L;
+  const qx = (x1+mx)/2 + nx*amp, qy = (y1+my)/2 + ny*amp;
+  const d = `M${x1} ${y1} Q${qx} ${qy} ${mx} ${my} T${x2} ${y2}`;
+  return `<g fill="none" stroke-linecap="round">` +
+    `<path d="${d}" stroke="rgba(0,0,0,.45)" stroke-width="3.6"/>` +
+    `<path d="${d}" stroke="${col}" stroke-width="2.5"/>` +
+    `<path d="${d}" stroke="rgba(255,255,255,.5)" stroke-width=".8" stroke-dasharray="1.2 2"/>` +
+    `<circle cx="${x1}" cy="${y1}" r="2.2" fill="${col}" stroke="rgba(0,0,0,.5)" stroke-width=".6"/>` +
+    `<circle cx="${x1 + nx*.9 - ux*.4}" cy="${y1 + ny*.9 - uy*.4}" r=".55" fill="#fff" stroke="none"/>` +
+    `<circle cx="${x1 - nx*.9 - ux*.4}" cy="${y1 - ny*.9 - uy*.4}" r=".55" fill="#fff" stroke="none"/>` +
+    `</g>`;
+}
+
+// =====================================================================
+//  GAME STATE
+// =====================================================================
+let players = [], turn = 0, gameId = 0, gameOver = false, Q = null;
+
+function offsets(){
+  const n = players.length;
+  if (n === 1) return [[0,0]];
+  if (n === 2) return [[-2.2,0],[2.2,0]];
+  return [[-2.2,-2.2],[2.2,-2.2],[-2.2,2.2],[2.2,2.2]];
+}
+function placeAll(){
+  const off = offsets();
+  players.forEach((pl, i) => {
+    const t = $('t' + i), [cx, cy] = ctr(pl.pos);
+    t.style.left = (cx + off[i][0]) + '%';
+    t.style.top  = (cy + off[i][1]) + '%';
+    t.classList.toggle('me', i === turn && !gameOver);
+  });
+}
+function renderPlayers(){
+  $('players').innerHTML = players.map((pl, i) =>
+    `<div class="pl ${i === turn && !gameOver ? 'on' : ''}"><b><i style="background:${pl.color}"></i>${pl.name}</b><span>📍${pl.pos} · ✓${pl.ok}/${pl.tot}</span></div>`
+  ).join('');
+}
+function setMsg(t){ $('msg').textContent = t; }
+
+function startGame(){
+  gameId++; gameOver = false; turn = 0; Q = null; recent = [];
+  const n = cfg.n;
+  players = Array.from({length:n}, (_, i) => ({
+    name: n === 1 ? 'You' : COLORS[i][0], color: COLORS[i][1], pos: 1, ok: 0, tot: 0
+  }));
+  $('tokens').innerHTML = players.map((pl, i) => `<div class="token" id="t${i}" style="background:${pl.color}"></div>`).join('');
+  $('badge').textContent = cfg.level + ' ' + cfg.focus.map(k => FOCI[k][0]).join('');
+  renderPlayers(); placeAll();
+  setMsg('Answer correctly to roll the die!');
+  showQuestion();
+}
+
+// =====================================================================
+//  QUESTION FLOW
+// =====================================================================
+function selfRow(){
+  return '<button class="opt" id="selfOk">✓ I said it</button><button class="opt" id="selfNo">✗ Skip</button>';
+}
+
+function showQuestion(){
+  stopAudio();
+  const kinds = cfg.focus.filter(k => !(k === 'hoeren' && !hasTTS));
+  const k = kinds.length ? kinds[rnd(kinds.length)] : 'verben';
+  const q = fresh(() => GENS[k](cfg.level));
+  q.done = false; Q = q;
+  const pl = players[turn];
+
+  let inner;
+  if (q.kind === 'sprechen') {
+    const btns = [];
+    if (hasTTS) btns.push('<button class="opt" id="sayListen">🔊 Listen</button>');
+    if (SR) btns.push('<button class="opt" id="sayMic">🎤 Speak</button>');
+    const span = btns.length === 1 ? ' style="grid-column:1/-1"' : '';
+    inner = btns.map(b => b.replace('class="opt"', 'class="opt"' + span)).join('') + (SR ? '' : selfRow());
+  } else {
+    inner = q.opts.map((o, i) => `<button class="opt" data-i="${i}">${o}</button>`).join('');
+  }
+  const spk = q.kind === 'hoeren' ? '<button class="spk" id="spk" aria-label="Play audio">🔊</button>' : '';
+  const small = q.prompt.length > 30 ? ' small' : '';
+
+  $('body').innerHTML =
+    `<div class="tag">${q.tag} · <span style="color:${pl.color}">●</span> ${pl.name}</div>` +
+    `<div class="prompt${small}">${q.prompt}${spk}</div>` +
+    `<div class="hint" id="hint">${q.hint}</div>` +
+    `<div class="opts${q.long ? ' long' : ''}" id="opts">${inner}</div>`;
+  renderPlayers(); placeAll();
+  if (q.kind === 'hoeren') setTimeout(() => { if (Q === q && !q.done) say(q.say); }, 350);
+}
+
+async function answer(i){
+  if (!Q || Q.done) return;
+  const q = Q, id = gameId; q.done = true; stopAudio();
+  const ok = q.opts[i] === q.ans;
+  document.querySelectorAll('#opts .opt').forEach((b, k) => {
+    b.disabled = true;
+    if (q.opts[k] === q.ans) b.classList.add('good');
+    else if (k === i) b.classList.add('bad');
+  });
+  await sleep(650); if (id !== gameId || q !== Q) return;
+  finish(ok);
+}
+
+function speakDone(ok){
+  if (!Q || Q.done) return;
+  Q.done = true; stopAudio(); finish(ok);
+}
+
+function showSelf(){
+  if (!$('selfOk') && $('opts')) $('opts').insertAdjacentHTML('beforeend', selfRow());
+}
+
+function mic(){
+  if (!SR || !Q || Q.done || recOn) return;
+  const q = Q;
+  stopAudio();
+  let r;
+  try { r = new SR(); } catch(e) { showSelf(); return; }
+  rec = r; recOn = true;
+  r.lang = 'de-DE'; r.interimResults = false; r.maxAlternatives = 3; r.continuous = false;
+  const b = $('sayMic'); if (b) b.textContent = '🎤 Listening…';
+  let handled = false;
+  r.onresult = e => {
+    handled = true; if (q !== Q || q.done) return;
+    const alts = [...e.results[0]].map(a => a.transcript);
+    const best = Math.max(...alts.map(t => match(q.ans, t)));
+    if (best >= .7) { q.done = true; $('hint').textContent = 'Heard: “' + alts[0] + '”'; finish(true); }
+    else { $('hint').textContent = 'Heard: “' + alts[0] + '” – try again, or judge yourself.'; showSelf(); }
+  };
+  r.onerror = e => {
+    handled = true; if (q !== Q || q.done) return;
+    $('hint').textContent = 'Microphone problem (' + (e.error || 'unknown') + '). Judge yourself instead.';
+    showSelf();
+  };
+  r.onend = () => {
+    recOn = false; if (q !== Q || q.done) return;
+    const b2 = $('sayMic'); if (b2) b2.textContent = '🎤 Speak';
+    if (!handled) { $('hint').textContent = 'Didn\'t catch that – try again.'; showSelf(); }
+  };
+  try { r.start(); } catch(e) { recOn = false; showSelf(); }
+}
+
+function finish(ok){
+  const q = Q, pl = players[turn];
+  pl.tot++; if (ok) pl.ok++;
+  renderPlayers();
+  const sp = q.kind === 'sprechen';
+  const head = ok ? (sp ? '🗣️ Super!' : '✓ Richtig!') : (sp ? '✗ Keep practising:' : '✗ Correct answer:');
+  const tip = q.tip ? `<div class="tip">💡 ${q.tip}</div>` : '';
+  const o = $('opts');
+  o.className = 'opts'; o.style.gridTemplateColumns = '1fr';
+  o.innerHTML = ok
+    ? `<div class="res good">${head}<br><b>${q.full}</b>${tip}</div><button class="go" id="rollBtn">🎲 Roll the die</button>`
+    : `<div class="res bad">${head}<br><b>${q.full}</b>${tip}</div><button class="go sec" id="nextBtn">Next player →</button>`;
+  setMsg(ok ? `${pl.name}: correct! Roll the die.` : `${pl.name}: not quite, no roll this turn.`);
+}
+
+async function doRoll(){
+  const id = gameId, pl = players[turn];
+  $('opts').innerHTML = `<div class="dieBox"><span id="dface">⚀</span><span>Rolling…</span></div>`;
+  for (let k = 0; k < 9; k++) { $('dface').textContent = DIE[rnd(6)]; await sleep(70); if (id !== gameId) return; }
+  const r = 1 + rnd(6);
+  $('dface').textContent = DIE[r-1];
+  $('opts').querySelector('span:last-child').textContent = `You rolled ${r}!`;
+  await sleep(500); if (id !== gameId) return;
+
+  const target = pl.pos + r;
+  if (target > 100) {
+    setMsg(`🎯 ${pl.name} rolled ${r}: too high! Exact roll needed for 100.`);
+    await sleep(1200); if (id !== gameId) return;
+    return nextTurn();
+  }
+  for (let p = pl.pos + 1; p <= target; p++) { pl.pos = p; placeAll(); await sleep(190); if (id !== gameId) return; }
+  renderPlayers();
+
+  const jump = LADDERS[target] ? [LADDERS[target], '🪜 Ladder!'] : SNAKES[target] ? [SNAKES[target], '🐍 Snake!'] : null;
+  if (jump) {
+    setMsg(`${jump[1]} ${target} → ${jump[0]}`);
+    await sleep(500); if (id !== gameId) return;
+    const t = $('t' + turn);
+    t.style.transition = 'left .8s ease, top .8s ease';
+    pl.pos = jump[0]; placeAll(); renderPlayers();
+    await sleep(900); if (id !== gameId) return;
+    t.style.transition = '';
+  } else {
+    setMsg(`${pl.name} moved to ${pl.pos}.`);
+  }
+
+  if (pl.pos === 100) return win(pl);
+  await sleep(700); if (id !== gameId) return;
+  nextTurn();
+}
+
+function nextTurn(){
+  if (gameOver) return;
+  turn = (turn + 1) % players.length;
+  showQuestion();
+}
+
+function win(pl){
+  gameOver = true; placeAll(); renderPlayers();
+  $('winTitle').textContent = `🎉 ${pl.name === 'You' ? 'You win' : pl.name + ' wins'}!`;
+  $('winText').innerHTML = players.map(p => `${p.name}: ✓ ${p.ok} of ${p.tot} correct`).join('<br>');
+  $('win').classList.remove('hidden');
+}
+
+// =====================================================================
+//  EVENTS
+// =====================================================================
+$('body').addEventListener('click', e => {
+  const t = e.target.closest('button'); if (!t) return;
+  if (t.dataset.i !== undefined) return answer(+t.dataset.i);
+  switch (t.id) {
+    case 'rollBtn': return doRoll();
+    case 'nextBtn': return nextTurn();
+    case 'spk': case 'sayListen': if (Q) say(Q.say); return;
+    case 'sayMic': return mic();
+    case 'selfOk': return speakDone(true);
+    case 'selfNo': return speakDone(false);
+  }
+});
+
+$('chips').addEventListener('click', e => {
+  const c = e.target.closest('.chip'); if (!c) return;
+  cfg.n = +c.dataset.n; syncSetup();
+});
+$('levels').addEventListener('click', e => {
+  const c = e.target.closest('.chip'); if (!c) return;
+  cfg.level = c.dataset.l; syncSetup();
+});
+$('focus').addEventListener('click', e => {
+  const c = e.target.closest('.chip'); if (!c) return;
+  const k = c.dataset.k, i = cfg.focus.indexOf(k);
+  if (i > -1) { if (cfg.focus.length > 1) cfg.focus.splice(i, 1); }
+  else cfg.focus.push(k);
+  syncSetup();
+});
+$('startBtn').addEventListener('click', () => {
+  try { localStorage.setItem('sl_cfg', JSON.stringify(cfg)); } catch(e) {}
+  $('setup').classList.add('hidden');
+  startGame();
+});
+$('newBtn').addEventListener('click', () => { stopAudio(); gameId++; syncSetup(); $('setup').classList.remove('hidden'); });
+$('againBtn').addEventListener('click', () => { $('win').classList.add('hidden'); syncSetup(); $('setup').classList.remove('hidden'); });
+
+buildBoard();
+buildSetup();
+try { hasTTS && speechSynthesis.getVoices(); } catch(e) {}
+</script>
+</body>
+</html>
